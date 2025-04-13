@@ -1,4 +1,29 @@
 import { getScaledValue } from "../utils/getScaledValue";
+// --- Constants --- 
+export const ENEMY_SPAWN_COUNT = 7;
+export const ENEMY_SPAWN_INTERVAL = 1000;
+export const ENEMY_NORMAL_WEIGHT = 0.60;
+export const ENEMY_FAST_WEIGHT = 0.30;
+export const ENEMY_TANK_WEIGHT = 0.10;
+export const BASE_DAMAGE_INTERVAL = 15000;
+export const LINE_Y_OFFSET = 120;
+export const INITIAL_BASE_HEALTH = 2000;
+export const HAS_RECOVERY = false;
+export const HAS_LIFE_STEAL = false;
+export const HAS_THORNS = false;
+export const HAS_MOMENTUM = false;
+
+export const TURRET_CONFIG = {
+    fireRate: 100, // ms between shots
+    range: 530,     // pixels
+    damage: 575,
+    bulletSpeed: 15,
+    size: 70,       // Turret base size
+    color: "#4A4A4A",
+    barrelColor: "#2C2C2C",
+    barrelLength: 25,
+    bulletSize: 10,
+};
 
 export const weapons = {
     pistol: {

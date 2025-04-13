@@ -1,18 +1,18 @@
-import { getScaledValue } from "../../utils/getScaledValue";
-import { ENEMY_TYPES  } from "../constants";
+import { getScaledValue } from "../utils/getScaledValue";
+import { ENEMY_TYPES  } from "../constansts/constants";
 
-export class Enemy {
-    constructor(x, y, type) {
+export default class Enemy {
+    constructor(x, y, type, scalingFactor = 1) {
         const config = ENEMY_TYPES[type] || ENEMY_TYPES.normal;
 
         this.x = x;
         this.y = y;
         this.type = type;
         this.size = getScaledValue(config.size);
-        this.speed = getScaledValue(config.speed);
+        this.speed = getScaledValue(config.speed) * scalingFactor; // Apply speed scaling
         this.velocity = { x: 0, y: 0 };
-        this.health = config.health;
-        this.maxHealth = config.health;
+        this.health = config.health * scalingFactor; // Apply health scaling
+        this.maxHealth = config.health * scalingFactor; // Apply health scaling
         this.damage = config.damage;
         this.score = config.score;
         this.knockbackResistance = config.knockbackResistance;

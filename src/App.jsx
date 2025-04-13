@@ -1,5 +1,5 @@
 import './App.css'
-import GameScene from './scenes/GameScene'
+import Game from './components/Game/Game';
 
 function App() {
   const consoleOptions = 'background: #ffffff; color: #6b17e8';
@@ -30,7 +30,7 @@ function App() {
   return (
     <>
       <div className="wrapper">
-        <GameScene />
+        < Game />
       </div>
     </>
   )

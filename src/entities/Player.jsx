@@ -1,5 +1,5 @@
-import { getScaledValue } from "../../utils/getScaledValue";
-import { weapons } from "../constants";
+import { getScaledValue } from "../utils/getScaledValue";
+import { weapons } from "../constansts/constants";
 
 // --- Constants ---a
 const PLAYER_RADIUS = 20;
