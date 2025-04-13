@@ -1,4 +1,5 @@
 # 🧟 DreadFront
+#### Made By: Dreigonnadoit 
 
 **DreadFront** is a base defense zombie survival game where players must protect their stronghold from relentless waves of the undead. Arm yourself, fortify your defenses, and survive the dread that’s coming.
 
@@ -12,11 +13,29 @@
   - Upgrade weapons and skills
   - Repair and reinforce your defenses
   - Face different zombie types (slow, fast, tanky, etc.)
+
+---
+
+**Current Passive Skills:**
+
+
+| Passive Skills | Description                                                                                              |
+|----------------|----------------------------------------------------------------------------------------------------------|
+| Recovery       | Player gradually recovers health after a set amount of time when damage is taken.                        |
+| Life Steal     | Player regains health through damaging enemies.                                                          |
+| Thorns         | Apply greater damage to enemies when they bump into you.                                                 |
+| Momentum       | If the player does not receive damage over a set interval, they gain an additional movement speed boost. |
+| Fast Reaload   | Shorten Amount of time that is needed to reload.                                                         |
+
+---
+
 - **Planned Features**:
   - Weapon upgrade system
-  - Power-ups and passive skills
+  - Power-ups
   - Player stats tracking
   - Multiplayer or co-op mode *(coming soon)*
+  - More Passive Skills
+  - Nuke and Air Raid
 
 ---
 
