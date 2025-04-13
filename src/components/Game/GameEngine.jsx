@@ -3,10 +3,10 @@ import { PassiveSkills } from "../../systems/PassiveSkills";
 import Player from "../../entities/Player";
 import Enemy from "../../entities/Enemy";
 import Drone from "../../entities/Drone";
-import {  TURRET_CONFIG, ENEMY_SPAWN_COUNT, ENEMY_SPAWN_INTERVAL, BASE_DAMAGE_INTERVAL, INITIAL_BASE_HEALTH, LINE_Y_OFFSET, weapons } from "../../constansts/constants";
+import { TURRET_CONFIG, ENEMY_SPAWN_COUNT, ENEMY_SPAWN_INTERVAL, BASE_DAMAGE_INTERVAL, INITIAL_BASE_HEALTH, LINE_Y_OFFSET, weapons } from "../../constansts/constants";
 import calculateDistance from "../../utils/calculateDistance";
 
-const useGameEngine = (canvasRef, playerImageRef) => {
+const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
     // Game state
     const [win, setWin] = useState(false);
     const [gameOver, setGameOver] = useState(false);
@@ -15,7 +15,6 @@ const useGameEngine = (canvasRef, playerImageRef) => {
     const [score, setScore] = useState(0);
     const [timeElapsed, setTimeElapsed] = useState(0);
     const [enemyScalingFactor, setEnemyScalingFactor] = useState(1);
-    const gameDuration = 120000;
 
     // Player state
     const [playerHealth, setPlayerHealth] = useState(100);
@@ -30,7 +29,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
         momentum: false,
         fastReload: false
     });
-    const [maxDrones, setMaxDrones] = useState(4);
+    const [maxDrones, setMaxDrones] = useState(0);
 
     // Refs for game objects
     const playerRef = useRef(null);
@@ -263,7 +262,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
 
         const spawnEnemy = () => {
             if (isPaused || win || gameOver) return;
-            
+
             for (let i = 0; i < ENEMY_SPAWN_COUNT; i++) {
                 const type = getRandomEnemyType();
                 const y = -10;
@@ -305,7 +304,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
         const updatePlayer = () => {
             const player = playerRef.current;
             if (!player) return;
-        
+
             // Handle automatic weapon firing
             const weaponInfo = player.getCurrentWeaponInfo();
             if (weaponInfo.isAutomatic && mouseDown.current) {
@@ -316,7 +315,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                     setReloadTime(player.getReloadTimeRemaining());
                 }
             }
-        
+
             // Handle reloading
             const reloadFinished = player.updateReload(Date.now());
             if (reloadFinished) {
@@ -326,7 +325,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
             } else if (player.isReloading()) {
                 setReloadTime(player.getReloadTimeRemaining());
             }
-        
+
             // Apply passive skills
             if (passiveSkillsRef.current.recovery) {
                 const prevHealth = player.getHealth();
@@ -335,36 +334,44 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                     setPlayerHealth(player.getHealth());
                 }
             }
-        
+
             // Update player movement
-            const speedModifier = passiveSkillsRef.current.momentum ? 
+            const speedModifier = passiveSkillsRef.current.momentum ?
                 PassiveSkills.momentum(player, true) : 1.0;
             player.setSpeedModifier(speedModifier);
             player.update(keys.current, { width: canvas.width, height: canvas.height });
         };
-        
+
         const updateEnemies = () => {
             const lineY = canvas.height - LINE_Y_OFFSET;
             enemies.current = enemies.current.filter((enemy) => {
                 if (isPaused) return true;
-        
+
                 // Update enemy position
                 enemy.x += enemy.velocity.x;
                 enemy.y += enemy.velocity.y;
                 enemy.velocity.x *= 0.9;
                 enemy.velocity.y *= 0.9;
-        
+
                 const maxY = lineY - enemy.size;
-                
+
                 // Behavior-specific updates
                 if (enemy.type === 'fast') {
                     const playerPos = playerRef.current.getPosition();
                     const distToPlayer = calculateDistance(playerPos.x, playerPos.y, enemy.x, enemy.y);
-        
+
+                    // Always move toward player
                     if (distToPlayer > 0) {
                         enemy.velocity.x += ((playerPos.x - enemy.x) / distToPlayer) * enemy.speed * 0.1;
                         enemy.velocity.y += ((playerPos.y - enemy.y) / distToPlayer) * enemy.speed * 0.1;
                     }
+
+                    // Clamp fast enemy from passing maxY
+                    if (enemy.y > maxY) {
+                        enemy.y = maxY;
+                        enemy.velocity.y = 0; 
+                    }
+
                 } else { // Normal and Tank enemies
                     if (enemy.y < maxY) enemy.isStopped = false;
                     if (!enemy.isStopped) enemy.y += enemy.speed;
@@ -383,22 +390,22 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                         }
                     }
                 }
-        
+
                 // Boundary check
                 enemy.x = Math.max(0, Math.min(canvas.width - enemy.size, enemy.x));
-        
+
                 // Check for collisions with bullets
                 let hitByBullet = false;
                 bullets.current = bullets.current.filter((bullet) => {
                     if (checkCollision(bullet, enemy)) {
-                        const knockbackForce = bullet.weaponType === 'shotgun' ? 8 : 
-                                             (bullet.weaponType === 'turret' ? 1 : 0);
+                        const knockbackForce = bullet.weaponType === 'shotgun' ? 8 :
+                            (bullet.weaponType === 'turret' ? 1 : 0);
                         const angle = bullet.angle ?? 0;
-        
+
                         if (enemy.takeDamage(bullet.damage, knockbackForce, angle)) {
                             hitByBullet = true;
                             setScore(prev => prev + enemy.score);
-                            
+
                             // Life steal effect
                             const damageDealt = Math.min(bullet.damage, enemy.health);
                             const healAmount = PassiveSkills.lifeSteal(damageDealt, passiveSkillsRef.current.lifeSteal);
@@ -411,14 +418,14 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                     }
                     return true; // Keep bullet
                 });
-        
+
                 // Check for collisions with player
                 if (checkPlayerCollision(enemy)) {
                     handlePlayerDamage(enemy.damage, enemy);
                     const knockbackAngle = Math.atan2(enemy.y - playerRef.current.y, enemy.x - playerRef.current.x);
                     enemy.applyKnockback(15, knockbackAngle);
                 }
-        
+
                 // Remove dead enemies
                 if (enemy.health <= 0) {
                     if (enemy.damageInterval) {
@@ -428,36 +435,36 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                     if (!hitByBullet) setScore(prev => prev + enemy.score);
                     return false;
                 }
-        
+
                 return true;
             });
         };
-        
+
         const updateBullets = () => {
             bullets.current = bullets.current.filter((bullet) => {
                 bullet.x += bullet.velocity.x;
                 bullet.y += bullet.velocity.y;
-        
+
                 // Check if bullet is out of bounds or range
-                const distanceTravelled = bullet.maxDistance ? 
+                const distanceTravelled = bullet.maxDistance ?
                     calculateDistance(bullet.x, bullet.y, bullet.startX, bullet.startY) : 0;
-                
+
                 const outOfRange = bullet.maxDistance && distanceTravelled >= bullet.maxDistance;
-                const outOfBounds = bullet.x < 0 || bullet.x > canvas.width || 
-                                   bullet.y < 0 || bullet.y > canvas.height;
-        
+                const outOfBounds = bullet.x < 0 || bullet.x > canvas.width ||
+                    bullet.y < 0 || bullet.y > canvas.height;
+
                 return !(outOfRange || outOfBounds);
             });
         };
-        
+
         const updateTurrets = () => {
             turrets.current.forEach(turret => {
                 if (isPaused) return;
-        
+
                 // Position turrets if not already positioned
                 if (!turret.y) turret.y = canvas.height - LINE_Y_OFFSET + 50;
                 if (turret.x === null) turret.x = canvas.width - 50;
-        
+
                 // Find closest enemy
                 let closestEnemy = null;
                 let closestDistance = Infinity;
@@ -468,7 +475,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                         closestEnemy = enemy;
                     }
                 });
-        
+
                 // Update turret targeting and firing
                 turret.targetEnemy = closestEnemy;
                 if (turret.targetEnemy) {
@@ -476,7 +483,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                         turret.targetEnemy.y - turret.y,
                         turret.targetEnemy.x - turret.x
                     );
-        
+
                     if (Date.now() - turret.lastFireTime > TURRET_CONFIG.fireRate) {
                         bullets.current.push({
                             x: turret.x + Math.cos(turret.angle) * TURRET_CONFIG.barrelLength,
@@ -495,7 +502,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                 }
             });
         };
-        
+
         const updateDrones = () => {
             // Maintain correct number of drones
             while (drones.current.length < maxDrones) {
@@ -504,7 +511,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
             while (drones.current.length > maxDrones) {
                 drones.current.pop();
             }
-        
+
             // Update each drone
             drones.current.forEach((drone, index) => {
                 if (isPaused) return;
@@ -518,14 +525,14 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                 );
             });
         };
-        
+
         // Draw methods
         const drawPlayer = () => {
             const player = playerRef.current;
             if (!player) return;
             player.draw(ctx, mousePos.current, playerImageRef.current);
         };
-        
+
         const drawEnemies = () => {
             enemies.current.forEach(enemy => {
                 // Draw enemy body
@@ -537,7 +544,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                 }
                 ctx.fillStyle = color;
                 ctx.fillRect(enemy.x, enemy.y, enemy.size, enemy.size);
-        
+
                 // Draw health bar
                 ctx.fillStyle = "black";
                 ctx.fillRect(enemy.x, enemy.y - 10, enemy.size, 5);
@@ -545,7 +552,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                 ctx.fillRect(enemy.x, enemy.y - 10, (enemy.health / enemy.maxHealth) * enemy.size, 5);
             });
         };
-        
+
         const drawBullets = () => {
             bullets.current.forEach(bullet => {
                 ctx.save();
@@ -556,7 +563,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                 ctx.restore();
             });
         };
-        
+
         const drawTurrets = () => {
             const lineY = canvas.height - LINE_Y_OFFSET;
             turrets.current.forEach(turret => {
@@ -565,7 +572,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                 ctx.beginPath();
                 ctx.arc(turret.x, turret.y, TURRET_CONFIG.size / 2, 0, Math.PI * 2);
                 ctx.fill();
-        
+
                 // Draw barrel
                 ctx.save();
                 ctx.translate(turret.x, turret.y);
@@ -578,7 +585,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                     TURRET_CONFIG.size / 4
                 );
                 ctx.restore();
-        
+
                 // Draw range circle (debug)
                 ctx.beginPath();
                 ctx.arc(turret.x, turret.y, TURRET_CONFIG.range, 0, Math.PI * 2);
@@ -586,20 +593,20 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                 ctx.stroke();
             });
         };
-        
+
         const drawDrones = () => {
             drones.current.forEach(drone => drone.draw(ctx));
         };
-        
+
         const drawEnvironment = () => {
             const lineY = canvas.height - LINE_Y_OFFSET;
             const spawnZoneWidth = canvas.width * 0.1;
-        
+
             // Draw spawn zones
             ctx.fillStyle = 'rgba(128, 128, 128, 0.2)';
             ctx.fillRect(0, 0, spawnZoneWidth, canvas.height); // Left
             ctx.fillRect(canvas.width - spawnZoneWidth, 0, spawnZoneWidth, canvas.height); // Right
-        
+
             // Draw defense line
             ctx.beginPath();
             ctx.moveTo(0, lineY);
@@ -608,7 +615,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
             ctx.lineWidth = 4;
             ctx.stroke();
         };
-        
+
         // Helper functions
         const checkCollision = (bullet, enemy) => {
             const bulletSize = bullet.size;
@@ -616,7 +623,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
             const bulletRight = bullet.x + bulletSize / 2;
             const bulletTop = bullet.y - bulletSize / 2;
             const bulletBottom = bullet.y + bulletSize / 2;
-        
+
             return !(
                 bulletRight < enemy.x ||
                 bulletLeft > enemy.x + enemy.size ||
@@ -624,18 +631,18 @@ const useGameEngine = (canvasRef, playerImageRef) => {
                 bulletTop > enemy.y + enemy.size
             );
         };
-        
+
         const checkPlayerCollision = (enemy) => {
             const player = playerRef.current;
             const playerPos = player.getPosition();
             const playerRadius = player.getRadius();
             const enemyCenterX = enemy.x + enemy.size / 2;
             const enemyCenterY = enemy.y + enemy.size / 2;
-        
-            return calculateDistance(enemyCenterX, enemyCenterY, playerPos.x, playerPos.y) < 
-                   (playerRadius + enemy.size / 2);
+
+            return calculateDistance(enemyCenterX, enemyCenterY, playerPos.x, playerPos.y) <
+                (playerRadius + enemy.size / 2);
         };
-        
+
         const getRandomEnemyType = () => {
             const types = ['normal', 'fast', 'tank'];
             return types[Math.floor(Math.random() * types.length)];
@@ -663,7 +670,7 @@ const useGameEngine = (canvasRef, playerImageRef) => {
             window.removeEventListener('mouseup', handleMouseUp);
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
-            
+
             enemies.current.forEach(enemy => {
                 if (enemy.damageInterval) {
                     clearInterval(enemy.damageInterval);
