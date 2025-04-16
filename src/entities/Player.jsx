@@ -2,12 +2,9 @@ import { getScaledValue } from "../utils/getScaledValue";
 import { weapons } from "../constansts/constants";
 
 // --- Constants ---a
-const PLAYER_RADIUS = 20;
-const PLAYER_SPEED = 5;
+const PLAYER_RADIUS = 50;
+const PLAYER_SPEED = 4;
 const RECOIL_DECAY = 0.9;
-const PLAYER_SPRITE_WIDTH = 80;
-const PLAYER_SPRITE_HEIGHT = 80;
-const PLAYER_SPRITE_SCALE = 1;
 const INITIAL_PLAYER_HEALTH = 100;
 
 class Player {
@@ -187,21 +184,22 @@ class Player {
     switchWeapon(weaponName) {
         if (!weapons[weaponName] || !weapons[weaponName].unlocked) {
             console.warn(`Attempted to switch to locked or invalid weapon: ${weaponName}`);
-            return; // Don't switch if locked or doesn't exist
+            return;
         }
-        if (this.currentWeapon.name === weaponName) return; // Already equipped
+        if (this.currentWeapon.name === weaponName) return;
 
         const newWeaponConfig = weapons[weaponName];
         this.currentWeapon = {
             ...newWeaponConfig,
-            // Persist ammo if needed, or reset like original code:
             currentAmmo: newWeaponConfig.maxAmmo,
-            lastFireTime: 0, // Reset fire timer
-            isReloading: false, // Cancel any ongoing reload
+            lastFireTime: 0,
+            isReloading: false,
             lastReloadTime: 0,
         };
-        this._reloadTimeRemaining = 0; // Reset UI timer
-        console.log(`Switched weapon to: ${weaponName}`);
+        this._reloadTimeRemaining = 0;
+        
+        // Add weapon type tracking
+        this.currentWeaponType = weaponName;
     }
 
     canTakeDamage() {
@@ -218,12 +216,34 @@ class Player {
     }
 
     draw(ctx, mousePos, playerImage) {
-        if (!playerImage) return; // Don't draw if image not loaded
+        if (!playerImage) return;
 
         const angle = Math.atan2(mousePos.y - this.y, mousePos.x - this.x);
-        const drawWidth = PLAYER_SPRITE_WIDTH * PLAYER_SPRITE_SCALE;
-        const drawHeight = PLAYER_SPRITE_HEIGHT * PLAYER_SPRITE_SCALE;
-
+        
+        // Define the target dimensions you want the sprite to fit within
+        const targetWidth = this.radius * 3;  // Adjust as needed
+        const targetHeight = this.radius * 3; // Adjust as needed
+        
+        // Calculate the image's natural aspect ratio
+        const imgAspectRatio = playerImage.naturalWidth / playerImage.naturalHeight;
+        const targetAspectRatio = targetWidth / targetHeight;
+        
+        let drawWidth, drawHeight;
+        let offsetX = 0, offsetY = 0;
+        
+        // Calculate dimensions to maintain aspect ratio (object-fit: contain)
+        if (imgAspectRatio > targetAspectRatio) {
+            // Image is wider than target - fit to width
+            drawWidth = targetWidth;
+            drawHeight = targetWidth / imgAspectRatio;
+            offsetY = (targetHeight - drawHeight) / 2;
+        } else {
+            // Image is taller than target - fit to height
+            drawHeight = targetHeight;
+            drawWidth = targetHeight * imgAspectRatio;
+            offsetX = ((targetWidth - drawWidth) / 2) - getScaledValue(20);
+        }
+        
         // Momentum visual effect
         if (this.speedModifier > 1.0) {
             ctx.filter = `hue-rotate(${Date.now() % 360}deg)`;
@@ -233,10 +253,11 @@ class Player {
         ctx.translate(this.x, this.y);
         ctx.rotate(angle + Math.PI / 2); // Add PI/2 because sprite might face upwards
 
+        // Draw the image with proper scaling and centering
         ctx.drawImage(
             playerImage,
-            -drawWidth / 2,
-            -drawHeight / 2,
+            -drawWidth / 2 + offsetX,
+            -drawHeight / 2 + offsetY,
             drawWidth,
             drawHeight
         );
@@ -253,7 +274,7 @@ class Player {
 
         ctx.filter = 'none'; // Reset filter
     }
-
+    
     reset(initialX, initialY) {
         this.x = initialX;
         this.y = initialY;

@@ -198,7 +198,7 @@ export default class Drone {
             y: this.y,
             size: 5,
             velocity: { x: Math.cos(angle) * 8, y: Math.sin(angle) * 8 },
-            damage: 50,
+            damage: 25,
             type: 'drone_bullet',
             owner: 'player',
             piercing: 0,
@@ -234,11 +234,12 @@ export default class Drone {
             ctx.lineTo((this.targetEnemy.x + 10), (this.targetEnemy.y + 10));
             ctx.stroke();
 
-            ctx.strokeStyle = 'rgba(0, 255, 0, 0.2)';
-            ctx.beginPath();
-            ctx.arc(this.targetEnemy.x, this.targetEnemy.y, this.attackHoverDistance, 0, Math.PI * 2);
-            ctx.stroke();
+            // ctx.strokeStyle = 'rgba(0, 255, 0, 0.2)';
+            // ctx.beginPath();
+            // ctx.arc(this.targetEnemy.x, this.targetEnemy.y, this.attackHoverDistance, 0, Math.PI * 2);
+            // ctx.stroke();
         }
+
         // --- Debug Drawing (Optional, very helpful for tuning) ---
 
         /*

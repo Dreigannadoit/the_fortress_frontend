@@ -1,4 +1,5 @@
-import { playerSprite } from '../../assets';
+import { useEffect, useRef } from 'react';
+import { fortress, playerSprite, playerSprite_machine, playerSprite_pistol, playerSprite_shotgun } from '../../assets';
 import useCanvas from '../../hooks/useCanvas';
 import { useImage } from '../../hooks/useImage';
 import GameOver from '../UI/GameOver';
@@ -6,12 +7,35 @@ import PassiveSkillCheckboxes from '../UI/PassiveSkillCheckboxes';
 import WeaponDisplay from '../UI/WeaponDisplay';
 import YouWin from '../UI/YouWin';
 import useGameEngine from './GameEngine';
+import useMinutesToMilliseconds from '../../hooks/useMinutesToMilliseconds';
 
 const Game = () => {
     const canvasRef = useCanvas();
-    const playerImageRef = useImage(playerSprite);
     
-    const gameDuration = 100000;
+    const fortressImageRef = useRef(null);
+
+    useEffect(() => {
+        // Directly use the imported fortress image
+        if (fortress) {
+            const img = new Image();
+            img.src = fortress; 
+            img.onload = () => {
+                console.log("Fortress image loaded successfully");
+                fortressImageRef.current = img;
+            };
+            img.onerror = (e) => {
+                console.error("Failed to load fortress image:", e);
+            };
+        }
+    }, [fortress]);
+
+    const playerImageRef = useImage(playerSprite);
+
+    const pistolSpriteRef = useImage(playerSprite_pistol);
+    const shotgunSpriteRef = useImage(playerSprite_shotgun);
+    const machinegunSpriteRef = useImage(playerSprite_machine);
+
+    const gameDuration = useMinutesToMilliseconds(1.6);
 
     const {
         // State
@@ -44,7 +68,13 @@ const Game = () => {
         // Refs
         canvasRef: engineCanvasRef,
         playerImageRef: enginePlayerImageRef
-    } = useGameEngine(canvasRef, playerImageRef, gameDuration);
+    } =  useGameEngine(canvasRef, {
+        pistol: pistolSpriteRef,
+        shotgun: shotgunSpriteRef,
+        machinegun: machinegunSpriteRef
+    }, gameDuration, fortressImageRef);
+
+    
 
     return (
         <>
@@ -59,6 +89,8 @@ const Game = () => {
             )}
 
             <canvas ref={canvasRef} style={{ display: 'block' }} />
+
+            {/* <img className='fortress' src={fortress} alt="" /> */}
 
             <PassiveSkillCheckboxes
                 skills={passiveSkills}

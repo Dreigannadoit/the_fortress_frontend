@@ -31,6 +31,7 @@ canvas {
   object-fit: contain; /* Maintain aspect ratio */
   display: block;
   margin: 0 auto;
+  cursor: none;
 }
 
 .pause-overlay {

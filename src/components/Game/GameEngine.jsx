@@ -3,12 +3,15 @@ import { PassiveSkills } from "../../systems/PassiveSkills";
 import Player from "../../entities/Player";
 import Enemy from "../../entities/Enemy";
 import Drone from "../../entities/Drone";
-import { TURRET_CONFIG, ENEMY_SPAWN_COUNT, ENEMY_SPAWN_INTERVAL, BASE_DAMAGE_INTERVAL, INITIAL_BASE_HEALTH, LINE_Y_OFFSET, weapons } from "../../constansts/constants";
+import { TURRET_CONFIG, ENEMY_SPAWN_COUNT, ENEMY_SPAWN_INTERVAL, BASE_DAMAGE_INTERVAL, INITIAL_BASE_HEALTH, LINE_Y_OFFSET, weapons, ITEM_SPAWN_INTERVAL, ITEM_SPAWN_CHANCE } from "../../constansts/constants";
 import calculateDistance from "../../utils/calculateDistance";
 import { getRandomEnemyType } from "../../utils/getRandomEnemyType";
+import { Item } from "../../entities/Item";
 
 
-const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
+const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageRef) => {
+    const gunOffset = 24;
+
     // Game state
     const [win, setWin] = useState(false);
     const [gameOver, setGameOver] = useState(false);
@@ -24,6 +27,7 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
     const [currentAmmo, setCurrentAmmo] = useState(weapons.pistol.maxAmmo);
     const [isReloading, setIsReloading] = useState(false);
     const [reloadTime, setReloadTime] = useState(0);
+    const [itemSpawnTimer, setItemSpawnTimer] = useState(0);
     const [passiveSkills, setPassiveSkills] = useState({
         recovery: false,
         lifeSteal: false,
@@ -31,17 +35,18 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
         momentum: false,
         fastReload: false
     });
-    const [maxDrones, setMaxDrones] = useState(0);
+    const [maxDrones, setMaxDrones] = useState(4);
 
     // Refs for game objects
     const playerRef = useRef(null);
     const drones = useRef([]);
     const turrets = useRef([
-        { x: 50, y: null, angle: 0, targetEnemy: null, lastFireTime: 0 },
+        { x: 150, y: null, angle: 0, targetEnemy: null, lastFireTime: 0 },
         { x: null, y: null, angle: 0, targetEnemy: null, lastFireTime: 0 }
     ]);
     const bullets = useRef([]);
     const enemies = useRef([]);
+    const items = useRef([]);
 
     // Add enemy sprite refs
     const enemySpriteRefs = useRef({
@@ -73,10 +78,8 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
                 const img = new Image();
                 // Use absolute path from public folder or correct relative path
                 img.src = `src/assets/animation/${type}/${type}_${i}.png`;
-                console.log(`Loading: ${img.src}`); // Debug logging
                 img.onload = () => {
                     enemySpriteRefs.current[type][i].current = img;
-                    console.log(`Loaded: ${img.src}`);
                 };
                 img.onerror = () => {
                     console.error(`Failed to load: ${img.src}`);
@@ -85,6 +88,72 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
         });
     }, []);
 
+    const spawnItem = useCallback(() => {
+        if (Math.random() < ITEM_SPAWN_CHANCE) {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            
+            // Random position in safe zone (not too close to edges)
+            const padding = 100;
+            const x = padding + Math.random() * (canvas.width - padding * 2);
+            const y = padding + Math.random() * (canvas.height - padding * 2);
+            
+            // Create medkit with healing effect
+            const medkit = new Item(x, y, 'medkit', (player) => {
+                player.heal(30); // Heal 30 HP
+                return true; // Item was successfully used
+            });
+            
+            items.current.push(medkit);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (win || gameOver) return;
+        
+        const itemInterval = setInterval(() => {
+            setItemSpawnTimer(prev => {
+                const newTime = prev + 1000;
+                if (newTime >= ITEM_SPAWN_INTERVAL) {
+                    spawnItem();
+                    return 0;
+                }
+                return newTime;
+            });
+        }, 1000);
+        
+        return () => clearInterval(itemInterval);
+    }, [win, gameOver, spawnItem]);
+
+    const checkItemCollisions = useCallback(() => {
+        const player = playerRef.current;
+        if (!player) return;
+        
+        const playerPos = player.getPosition();
+        const playerRadius = player.getRadius();
+        
+        items.current = items.current.filter(item => {
+            if (item.collected) return false;
+            
+            // Check distance to player
+            const distance = calculateDistance(
+                playerPos.x, playerPos.y,
+                item.x, item.y
+            );
+            
+            if (distance < playerRadius + item.size/2) {
+                // Apply item effect
+                const success = item.effect(player);
+                if (success) {
+                    setPlayerHealth(player.getHealth());
+                    return false; // Remove collected item
+                }
+            }
+            
+            return true; // Keep uncollected item
+        });
+    }, []);
+    
 
     // Game logic methods
     const createBullet = useCallback((x, y, size, bulletSpeed, angle, range, damage, weaponType) => ({
@@ -96,7 +165,6 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
     const createBulletsCallbackForPlayer = useCallback((player, weapon, mousePosition) => {
         const playerPos = player.getPosition();
         const angle = Math.atan2(mousePosition.y - playerPos.y, mousePosition.x - playerPos.x);
-        const gunOffset = 15;
         const bulletStartX = playerPos.x + Math.cos(angle + Math.PI / 2) * gunOffset;
         const bulletStartY = playerPos.y + Math.sin(angle + Math.PI / 2) * gunOffset;
 
@@ -140,6 +208,8 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
         setScore(0);
         setTimeElapsed(0);
         setEnemyScalingFactor(1);
+        items.current = [];
+        setItemSpawnTimer(0);
 
         // Reset player state
         if (playerRef.current) {
@@ -276,7 +346,7 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
     useEffect(() => {
         if (win || gameOver) return;
         const scalingInterval = setInterval(() => {
-            setEnemyScalingFactor(prev => prev * 1.2);
+            setEnemyScalingFactor(prev => prev * 1.5);
         }, 30000);
         return () => clearInterval(scalingInterval);
     }, [win, gameOver]);
@@ -292,7 +362,7 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
 
         const spawnEnemy = () => {
             if (isPaused || win || gameOver || !canvasRef.current) return;
-        
+
             const canvas = canvasRef.current;
             const spawnZoneWidth = canvas.width * 0.1;
             const minX = spawnZoneWidth;
@@ -300,41 +370,41 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
             const cellSize = 200; // Grid cell size
             const grid = {};
             const newEnemies = [];
-        
+
             // Helper function to get grid key
-            const getGridKey = (x, y) => `${Math.floor(x/cellSize)},${Math.floor(y/cellSize)}`;
-        
+            const getGridKey = (x, y) => `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)}`;
+
             // Mark existing enemies in grid
             enemies.current.forEach(enemy => {
                 const key = getGridKey(enemy.x, enemy.y);
                 grid[key] = true;
             });
-        
+
             for (let i = 0; i < ENEMY_SPAWN_COUNT; i++) {
                 const type = getRandomEnemyType();
                 const y = -100;
                 let x;
                 let validPosition = false;
                 let attempts = 0;
-        
+
                 while (!validPosition && attempts < 10) {
                     attempts++;
                     x = Math.random() * (maxX - minX) + minX;
                     const key = getGridKey(x, y);
-                    
+
                     if (!grid[key]) {
                         validPosition = true;
                         grid[key] = true; // Mark this cell as occupied
                     }
                 }
-        
+
                 if (validPosition) {
                     const enemy = new Enemy(x, y, type, enemyScalingFactor);
                     enemy.setSpriteRefs(enemySpriteRefs.current[type]);
                     newEnemies.push(enemy);
                 }
             }
-        
+
             enemies.current.push(...newEnemies);
         };
 
@@ -353,14 +423,21 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
             updateBullets();
             updateTurrets();
             updateDrones();
+            updateItems();
 
-            // Draw game objects
+            // Draw game objects:
+            drawEnvironment(); 
+            drawItems(); 
             drawPlayer();
+            drawFortress();    
             drawEnemies();
             drawBullets();
-            drawTurrets();
             drawDrones();
-            drawEnvironment();
+            drawTurrets();     
+            drawCursor();
+
+            // Collision Item check
+            checkItemCollisions();
 
             animationFrameId = requestAnimationFrame(updateGame);
         };
@@ -503,6 +580,13 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
                 return true;
             });
         };
+        
+        const updateItems = () => {
+            items.current = items.current.filter(item => {
+                item.update();
+                return !item.collected;
+            });
+        };
 
         const updateBullets = () => {
             bullets.current = bullets.current.filter((bullet) => {
@@ -527,7 +611,7 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
 
                 // Position turrets if not already positioned
                 if (!turret.y) turret.y = canvas.height - LINE_Y_OFFSET + 50;
-                if (turret.x === null) turret.x = canvas.width - 50;
+                if (turret.x === null) turret.x = canvas.width - 150;
 
                 // Find closest enemy
                 let closestEnemy = null;
@@ -591,20 +675,106 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
         };
 
         // Draw methods
+        const drawFortress = () => {
+            const lineY = canvas.height - LINE_Y_OFFSET;
+        
+            if (!fortressImageRef.current) return;
+        
+            // Calculate height from the line down
+            const fortressHeight = canvas.height - lineY;
+        
+            // Draw one scaled image to span the entire canvas width
+            ctx.drawImage(
+                fortressImageRef.current,
+                0,
+                lineY,
+                canvas.width,
+                fortressHeight
+            );
+        
+            // Optional overlay for blending
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, lineY, canvas.width, fortressHeight);
+        
+            console.log("Fortress image loaded and stretched.");
+        };
+
+        const drawItems = () => {
+            items.current.forEach(item => item.draw(ctx));
+        };
+
+
         const drawPlayer = () => {
             const player = playerRef.current;
             if (!player) return;
-            player.draw(ctx, mousePos.current, playerImageRef.current);
+
+            // Default weapon key
+            const defaultWeapon = "pistol";
+
+            // Get the appropriate sprite based on current weapon
+            let currentSprite = playerSpriteRefs[player.currentWeaponType]?.current;
+
+            if (!currentSprite) {
+                currentSprite = playerSpriteRefs[defaultWeapon]?.current;
+            }
+
+            console.log("Current player weapon:", player.currentWeaponType);
+
+            player.draw(ctx, mousePos.current, currentSprite);
         };
 
         const drawEnemies = () => {
             enemies.current.forEach(enemy => {
-                console.log(`Drawing enemy ${enemy.type}:`);
-                console.log('Sprite refs:', enemy.spriteRefs);
-                console.log('Current frame:', enemy.currentFrame);
-
                 enemy.draw(ctx);
             });
+        };
+
+        const drawCursor = () => {
+            const player = playerRef.current;
+            if (!player || !mousePos.current) return;
+
+            const playerPos = player.getPosition();
+            const angle = Math.atan2(mousePos.current.y - playerPos.y, mousePos.current.x - playerPos.x);
+
+            // Calculate where bullets will actually spawn (the "true" aim point)
+            const bulletSpawnX = playerPos.x + Math.cos(angle + Math.PI / 2) * gunOffset;
+            const bulletSpawnY = playerPos.y + Math.sin(angle + Math.PI / 2) * gunOffset;
+
+            // Calculate vector from bullet spawn to mouse position
+            const cursorX = mousePos.current.x + Math.cos(angle + Math.PI / 2) * gunOffset;
+            const cursorY = mousePos.current.y + Math.sin(angle + Math.PI / 2) * gunOffset;
+
+            // Draw the custom cursor at the mouse position
+            ctx.save();
+
+            // Outer circle (white)
+            ctx.beginPath();
+            ctx.arc(cursorX, cursorY, 10, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(44, 44, 44, 0.2)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Inner circle (red)
+            ctx.beginPath();
+            ctx.arc(cursorX, cursorY, 5, 0, Math.PI * 2);
+            ctx.fillStyle = 'red';
+            ctx.fill();
+
+            // Draw line showing the offset correction
+            ctx.beginPath();
+            ctx.moveTo(bulletSpawnX, bulletSpawnY);
+            ctx.lineTo(cursorX, cursorY);
+            ctx.strokeStyle = 'rgba(184, 67, 67, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Draw small circle at bullet spawn point
+            ctx.beginPath();
+            ctx.arc(bulletSpawnX, bulletSpawnY, 3, 0, Math.PI * 2);
+            ctx.fillStyle = 'yellow';
+            ctx.fill();
+
+            ctx.restore();
         };
 
         const drawBullets = () => {
@@ -621,32 +791,144 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
         const drawTurrets = () => {
             const lineY = canvas.height - LINE_Y_OFFSET;
             turrets.current.forEach(turret => {
-                // Draw base
-                ctx.fillStyle = TURRET_CONFIG.color;
+                if (!turret.y) turret.y = lineY + 50;
+        
+                const baseRadius = TURRET_CONFIG.size / 2;
+                const barrelWidth = TURRET_CONFIG.size / 4;
+                const barrelHeight = TURRET_CONFIG.size / 4;
+                const barrelLength = TURRET_CONFIG.barrelLength;
+        
+                ctx.save();
+        
+                // --- Base with gradient and outline ---
                 ctx.beginPath();
-                ctx.arc(turret.x, turret.y, TURRET_CONFIG.size / 2, 0, Math.PI * 2);
+                ctx.arc(turret.x, turret.y, baseRadius, 0, Math.PI * 2);
+                const baseGradient = ctx.createRadialGradient(
+                    turret.x, turret.y - baseRadius / 2, baseRadius / 4,
+                    turret.x, turret.y, baseRadius
+                );
+                baseGradient.addColorStop(0, '#666');
+                baseGradient.addColorStop(1, '#333');
+                ctx.fillStyle = baseGradient;
                 ctx.fill();
-
-                // Draw barrel
+        
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+        
+                // --- Top cap with steel effect and outline ---
+                ctx.beginPath();
+                ctx.arc(turret.x, turret.y, baseRadius * 0.9, 0, Math.PI * 2);
+                const topGradient = ctx.createRadialGradient(
+                    turret.x, turret.y, 0,
+                    turret.x, turret.y, baseRadius * 0.9
+                );
+                topGradient.addColorStop(0, '#aaa');
+                topGradient.addColorStop(1, '#555');
+                ctx.fillStyle = topGradient;
+                ctx.fill();
+        
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+        
+                // --- Draw barrel ---
                 ctx.save();
                 ctx.translate(turret.x, turret.y);
                 ctx.rotate(turret.angle);
-                ctx.fillStyle = TURRET_CONFIG.barrelColor;
+        
+                // Barrel base shadow
+                ctx.fillStyle = '#222';
                 ctx.fillRect(
-                    TURRET_CONFIG.size / 4,
-                    -TURRET_CONFIG.size / 8,
-                    TURRET_CONFIG.barrelLength,
-                    TURRET_CONFIG.size / 4
+                    baseRadius * 0.2,
+                    -barrelHeight / 2,
+                    barrelLength,
+                    barrelHeight
                 );
+        
+                // Barrel body with metallic gradient
+                const barrelGradient = ctx.createLinearGradient(
+                    0, -barrelHeight / 2,
+                    0, barrelHeight / 2
+                );
+                barrelGradient.addColorStop(0, '#aaa');
+                barrelGradient.addColorStop(0.5, '#888');
+                barrelGradient.addColorStop(1, '#666');
+        
+                ctx.fillStyle = barrelGradient;
+                ctx.fillRect(
+                    baseRadius * 0.2,
+                    -barrelHeight / 2,
+                    barrelLength,
+                    barrelHeight
+                );
+        
+                // Top highlight
+                ctx.fillStyle = '#ccc';
+                ctx.fillRect(
+                    baseRadius * 0.2,
+                    -barrelHeight / 2,
+                    barrelLength,
+                    barrelHeight * 0.2
+                );
+        
+                // Barrel outline
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(
+                    baseRadius * 0.2,
+                    -barrelHeight / 2,
+                    barrelLength,
+                    barrelHeight
+                );
+        
+                // Muzzle tip
+                ctx.fillStyle = '#333';
+                ctx.fillRect(
+                    baseRadius * 0.2 + barrelLength,
+                    -barrelHeight / 2,
+                    barrelHeight * 0.5,
+                    barrelHeight
+                );
+                ctx.strokeRect(
+                    baseRadius * 0.2 + barrelLength,
+                    -barrelHeight / 2,
+                    barrelHeight * 0.5,
+                    barrelHeight
+                );
+        
+                // Mounting hardware
+                ctx.beginPath();
+                ctx.arc(0, 0, baseRadius * 0.3, 0, Math.PI * 2);
+                ctx.fillStyle = '#444';
+                ctx.fill();
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+        
                 ctx.restore();
-
-                // Draw range circle (debug)
+        
+                // --- Range circle ---
                 ctx.beginPath();
                 ctx.arc(turret.x, turret.y, TURRET_CONFIG.range, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(100, 100, 100, 0.2)';
+                ctx.strokeStyle = 'rgba(100, 100, 255, 0.1)';
+                ctx.lineWidth = 2;
                 ctx.stroke();
+        
+                ctx.restore();
+        
+                // --- Targeting line ---
+                if (turret.targetEnemy) {
+                    ctx.beginPath();
+                    ctx.moveTo(turret.x, turret.y);
+                    ctx.lineTo(turret.targetEnemy.x, turret.targetEnemy.y);
+                    ctx.strokeStyle = 'rgba(255, 50, 50, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
             });
         };
+        
 
         const drawDrones = () => {
             drones.current.forEach(drone => drone.draw(ctx));
@@ -748,6 +1030,7 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
         reloadTime,
         passiveSkills,
         maxDrones,
+        items: items.current,
 
         // Methods
         handleRestart,
