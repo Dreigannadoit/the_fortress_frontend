@@ -5,6 +5,8 @@ import Enemy from "../../entities/Enemy";
 import Drone from "../../entities/Drone";
 import { TURRET_CONFIG, ENEMY_SPAWN_COUNT, ENEMY_SPAWN_INTERVAL, BASE_DAMAGE_INTERVAL, INITIAL_BASE_HEALTH, LINE_Y_OFFSET, weapons } from "../../constansts/constants";
 import calculateDistance from "../../utils/calculateDistance";
+import { getRandomEnemyType } from "../../utils/getRandomEnemyType";
+
 
 const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
     // Game state
@@ -40,11 +42,18 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
     ]);
     const bullets = useRef([]);
     const enemies = useRef([]);
+
+    // Add enemy sprite refs
+    const enemySpriteRefs = useRef({
+        normal: Array(8).fill().map(() => ({ current: null })),
+        fast: Array(8).fill().map(() => ({ current: null })),
+        tank: Array(8).fill().map(() => ({ current: null }))
+    });
+
     const mousePos = useRef({ x: 0, y: 0 });
     const keys = useRef({ w: false, a: false, s: false, d: false, spacebar: false });
     const mouseDown = useRef(false);
     const passiveSkillsRef = useRef(passiveSkills);
-    const healingEffects = useRef([]);
 
     // Initialize player
     useEffect(() => {
@@ -55,6 +64,27 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
             setCurrentAmmo(playerRef.current.getCurrentAmmo());
         }
     }, []);
+
+    // Preload enemy sprites
+    useEffect(() => {
+        const types = ['normal', 'fast', 'tank'];
+        types.forEach(type => {
+            for (let i = 0; i < 8; i++) {
+                const img = new Image();
+                // Use absolute path from public folder or correct relative path
+                img.src = `src/assets/animation/${type}/${type}_${i}.png`;
+                console.log(`Loading: ${img.src}`); // Debug logging
+                img.onload = () => {
+                    enemySpriteRefs.current[type][i].current = img;
+                    console.log(`Loaded: ${img.src}`);
+                };
+                img.onerror = () => {
+                    console.error(`Failed to load: ${img.src}`);
+                };
+            }
+        });
+    }, []);
+
 
     // Game logic methods
     const createBullet = useCallback((x, y, size, bulletSpeed, angle, range, damage, weaponType) => ({
@@ -261,17 +291,51 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
         let enemySpawnIntervalId;
 
         const spawnEnemy = () => {
-            if (isPaused || win || gameOver) return;
-
+            if (isPaused || win || gameOver || !canvasRef.current) return;
+        
+            const canvas = canvasRef.current;
+            const spawnZoneWidth = canvas.width * 0.1;
+            const minX = spawnZoneWidth;
+            const maxX = canvas.width - (spawnZoneWidth + 0.05 * canvas.width);
+            const cellSize = 200; // Grid cell size
+            const grid = {};
+            const newEnemies = [];
+        
+            // Helper function to get grid key
+            const getGridKey = (x, y) => `${Math.floor(x/cellSize)},${Math.floor(y/cellSize)}`;
+        
+            // Mark existing enemies in grid
+            enemies.current.forEach(enemy => {
+                const key = getGridKey(enemy.x, enemy.y);
+                grid[key] = true;
+            });
+        
             for (let i = 0; i < ENEMY_SPAWN_COUNT; i++) {
                 const type = getRandomEnemyType();
-                const y = -10;
-                const spawnZoneWidth = canvas.width * 0.1;
-                const minX = spawnZoneWidth;
-                const maxX = canvas.width - (spawnZoneWidth + 0.05 * canvas.width);
-                const x = Math.random() * (maxX - minX) + minX;
-                enemies.current.push(new Enemy(x, y, type, enemyScalingFactor));
+                const y = -100;
+                let x;
+                let validPosition = false;
+                let attempts = 0;
+        
+                while (!validPosition && attempts < 10) {
+                    attempts++;
+                    x = Math.random() * (maxX - minX) + minX;
+                    const key = getGridKey(x, y);
+                    
+                    if (!grid[key]) {
+                        validPosition = true;
+                        grid[key] = true; // Mark this cell as occupied
+                    }
+                }
+        
+                if (validPosition) {
+                    const enemy = new Enemy(x, y, type, enemyScalingFactor);
+                    enemy.setSpriteRefs(enemySpriteRefs.current[type]);
+                    newEnemies.push(enemy);
+                }
             }
+        
+            enemies.current.push(...newEnemies);
         };
 
         const updateGame = () => {
@@ -369,7 +433,7 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
                     // Clamp fast enemy from passing maxY
                     if (enemy.y > maxY) {
                         enemy.y = maxY;
-                        enemy.velocity.y = 0; 
+                        enemy.velocity.y = 0;
                     }
 
                 } else { // Normal and Tank enemies
@@ -535,21 +599,11 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
 
         const drawEnemies = () => {
             enemies.current.forEach(enemy => {
-                // Draw enemy body
-                let color;
-                switch (enemy.type) {
-                    case 'fast': color = '#00ffff'; break;
-                    case 'tank': color = '#006400'; break;
-                    default: color = 'red';
-                }
-                ctx.fillStyle = color;
-                ctx.fillRect(enemy.x, enemy.y, enemy.size, enemy.size);
+                console.log(`Drawing enemy ${enemy.type}:`);
+                console.log('Sprite refs:', enemy.spriteRefs);
+                console.log('Current frame:', enemy.currentFrame);
 
-                // Draw health bar
-                ctx.fillStyle = "black";
-                ctx.fillRect(enemy.x, enemy.y - 10, enemy.size, 5);
-                ctx.fillStyle = "green";
-                ctx.fillRect(enemy.x, enemy.y - 10, (enemy.health / enemy.maxHealth) * enemy.size, 5);
+                enemy.draw(ctx);
             });
         };
 
@@ -641,11 +695,6 @@ const useGameEngine = (canvasRef, playerImageRef, gameDuration) => {
 
             return calculateDistance(enemyCenterX, enemyCenterY, playerPos.x, playerPos.y) <
                 (playerRadius + enemy.size / 2);
-        };
-
-        const getRandomEnemyType = () => {
-            const types = ['normal', 'fast', 'tank'];
-            return types[Math.floor(Math.random() * types.length)];
         };
 
         // Start game systems

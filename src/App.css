@@ -54,3 +54,63 @@
     justify-content: center;
     z-index: 1000;
 }
+
+.start-menu-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background-color: #121212;
+    color: white;
+    font-family: 'Arial', sans-serif;
+}
+
+.game-title {
+    font-size: 4rem;
+    margin-bottom: 2rem;
+    color: #ff5555;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.menu-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 3rem;
+}
+
+.menu-button {
+    padding: 1rem 2rem;
+    font-size: 1.5rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.start-button {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.settings-button {
+    background-color: #2196F3;
+    color: white;
+}
+
+.quit-button {
+    background-color: #f44336;
+    color: white;
+}
+
+.menu-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.game-info {
+    text-align: center;
+    font-size: 1.2rem;
+    opacity: 0.8;
+}

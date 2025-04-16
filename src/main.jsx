@@ -4,7 +4,7 @@ import './index.css'
 import App from './App.jsx'
 
 
-const consoleOptions = 'background: #ffffff; color: #6b17e8';
+const consoleOptions = 'background:rgb(0, 3, 22); color:rgb(112, 192, 230)';
 console.log(
   '%c=============================================================================================================+  \n' +
   '%c  DDDDDDDDDDDDDDDDDDDDDDDDD                                                                         DDDDDDDD         \n' +
@@ -23,9 +23,9 @@ console.log(
   '%c   D||||||||D      D||||||||DDD        D|||||||D                    D|||||||D                       D||||||D     \n' +
   '%c DDD||||||||DDDDDDDD||||||||DDD        D|||||||D                    D|||||||DDDDDDDDDDDDDDDDDD      D||||||D                  \n' +
   '%c D|||||||||||||||||||||||||DD         DD|||||||DD                    DD||||||||||||||||||||DDDD     D||||||D            \n' +
-  '%c D|||||||||||||||||||||||||D          D|||||||||D                      DDD|||||||||||||||DDD       D||||||||D    \n' +
-  '%c  DDDDDDDDDDDDDDDDDDDDDDDDD           DDDDDDDDDDD                         DDDDDDDDDDDDDDD          DDDDDDDDDD               \n' +      
-  '%c==============================================================================================================',
+  ' D|||||||||||||||||||||||||D          D|||||||||D                     DDD||||||||||||||||DDD       D||||||||D    \n' +
+  ' DDDDDDDDDDDDDDDDDDDDDDDDD            DDDDDDDDDDD                        DDDDDDDDDDDDDDDD          DDDDDDDDDD               \n' +      
+  ' ==============================================================================================================',
   ...Array(17).fill(consoleOptions)
 );
 console.log("%cVisit my site: https://dreiabmab.com", "background-color: black; color: lightblue; text-decoration: underline; padding: 5px;");

@@ -1,3 +1,5 @@
+import { ENEMY_FAST_WEIGHT, ENEMY_NORMAL_WEIGHT, ENEMY_TANK_WEIGHT } from "../constansts/constants";
+
 export const getRandomEnemyType = () => {
     const spawnRates = {
         normal: ENEMY_NORMAL_WEIGHT,
