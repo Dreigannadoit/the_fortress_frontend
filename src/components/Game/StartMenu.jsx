@@ -10,7 +10,7 @@ const StartMenu = () => {
 
     return (
         <div className="start-menu-container">
-            <h1 className="game-title">Zombie Defense</h1>
+            <h1 className="game-title">Until They Return</h1>
             
             <div className="menu-options">
                 <button 
@@ -20,17 +20,16 @@ const StartMenu = () => {
                     Start Game
                 </button>
 
-                <button 
+                {/* <button 
                     className="menu-button quit-button"
                     onClick={() => window.close()}
                 >
                     Quit
-                </button>
+                </button> */}
             </div>
             
             <div className="game-info">
-                <p>Defend your base from the zombie horde!</p>
-                <p>Survive for 2 minutes to win.</p>
+                <p>A Simple Project</p>
             </div>
         </div>
     );

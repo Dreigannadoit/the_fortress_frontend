@@ -1,5 +1,22 @@
 import { getScaledValue } from "../utils/getScaledValue";
 import { ENEMY_TYPES } from "../constansts/constants";
+import { fast_hurt, normal_death, tank_death, tank_hurt } from "../assets";
+import playSound from "../utils/playSound";
+
+const ENEMY_SOUNDS = {
+    normal: {
+        hurt: new Audio(tank_hurt),
+        death: new Audio(normal_death)
+    },
+    fast: {
+        hurt: new Audio(tank_hurt),
+        death: new Audio(fast_hurt)
+    },
+    strong: {
+        hurt: new Audio(tank_hurt),
+        death: new Audio(tank_death)
+    }
+};
 
 export default class Enemy {
     constructor(x, y, type, scalingFactor = 1) {
@@ -84,6 +101,7 @@ export default class Enemy {
     setSpriteRefs(refs) {
         this.spriteRefs = refs;
     }
+    
 
     applyKnockback(force, angle) {
         this.velocity.x += Math.cos(angle) * force;
@@ -143,21 +161,30 @@ export default class Enemy {
 
     takeDamage(damage, knockbackForce = 0, angle = 0) {
         this.health -= damage;
-
-        // Apply knockback with resistance
+    
+        // ✅ Play hurt sound
+        const sounds = ENEMY_SOUNDS[this.type] || ENEMY_SOUNDS['normal'];
+        if (sounds?.hurt) playSound(sounds.hurt);
+    
+        // Apply knockback
         const effectiveKnockback = knockbackForce * (1 - this.knockbackResistance);
         if (effectiveKnockback > 0) {
             this.velocity.x += Math.cos(angle) * effectiveKnockback;
             this.velocity.y += Math.sin(angle) * effectiveKnockback;
         }
-
+    
+        // Check if dead
         if (this.health <= 0) {
             if (this.damageInterval) clearInterval(this.damageInterval);
+    
+            // ✅ Play death sound
+            if (sounds?.death) playSound(sounds.death);
+    
             return true; // Enemy killed
         }
         return false;
     }
-
+    
     applyBurn() {
         if (!this.isBurning) {
             this.isBurning = true;
@@ -169,7 +196,7 @@ export default class Enemy {
     loadSprites(type) {
         // Assuming you have sprite frames named like: enemy_[type]_[frame].png
         this.animationFrames = [];
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 4; i++) {
             const img = new Image();
             img.src = `src/assets/animation/${type}/${type}_${i}.png`;
             this.animationFrames.push(img);
@@ -180,7 +207,7 @@ export default class Enemy {
         this.frameCount++;
         if (this.frameCount >= this.animationSpeed) {
             this.frameCount = 0;
-            this.currentFrame = (this.currentFrame + 1) % 8;
+            this.currentFrame = (this.currentFrame + 1) % 4;
         }
     
         // Only update facing direction for non-fast enemies

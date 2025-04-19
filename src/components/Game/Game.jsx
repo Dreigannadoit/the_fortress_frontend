@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { fortress, playerSprite, playerSprite_machine, playerSprite_pistol, playerSprite_shotgun } from '../../assets';
+import { fortress, playerSprite, playerSprite_machine, playerSprite_pistol, playerSprite_shotgun, trees } from '../../assets';
 import useCanvas from '../../hooks/useCanvas';
 import { useImage } from '../../hooks/useImage';
 import GameOver from '../UI/GameOver';
@@ -7,35 +7,14 @@ import PassiveSkillCheckboxes from '../UI/PassiveSkillCheckboxes';
 import WeaponDisplay from '../UI/WeaponDisplay';
 import YouWin from '../UI/YouWin';
 import useGameEngine from './GameEngine';
-import useMinutesToMilliseconds from '../../hooks/useMinutesToMilliseconds';
+import minutesToMilliseconds from '../../utils/MinutesToMilliseconds';
+import { useNavigate } from 'react-router-dom';
 
 const Game = () => {
+    const navigate = useNavigate();
     const canvasRef = useCanvas();
-    
-    const fortressImageRef = useRef(null);
 
-    useEffect(() => {
-        // Directly use the imported fortress image
-        if (fortress) {
-            const img = new Image();
-            img.src = fortress; 
-            img.onload = () => {
-                console.log("Fortress image loaded successfully");
-                fortressImageRef.current = img;
-            };
-            img.onerror = (e) => {
-                console.error("Failed to load fortress image:", e);
-            };
-        }
-    }, [fortress]);
-
-    const playerImageRef = useImage(playerSprite);
-
-    const pistolSpriteRef = useImage(playerSprite_pistol);
-    const shotgunSpriteRef = useImage(playerSprite_shotgun);
-    const machinegunSpriteRef = useImage(playerSprite_machine);
-
-    const gameDuration = useMinutesToMilliseconds(1.6);
+    const gameDuration = minutesToMilliseconds(1.6);
 
     const {
         // State
@@ -52,50 +31,144 @@ const Game = () => {
         reloadTime,
         passiveSkills,
         maxDrones,
-        
+
         // Methods
         handleRestart,
         toggleSkill,
         updateDroneCount,
-        
+
         // Input handlers
         handleMouseMove,
         handleMouseDown,
         handleMouseUp,
         handleKeyDown,
         handleKeyUp,
-        
+        setIsPaused,
+        cleanupGame,
+
+        isMusicPlaying,
+        musicVolume,
+        toggleMusic,
+        setVolume,
+
         // Refs
         canvasRef: engineCanvasRef,
-        playerImageRef: enginePlayerImageRef
-    } =  useGameEngine(canvasRef, {
-        pistol: pistolSpriteRef,
-        shotgun: shotgunSpriteRef,
-        machinegun: machinegunSpriteRef
-    }, gameDuration, fortressImageRef);
+    } = useGameEngine(canvasRef, gameDuration);
 
-    
+
 
     return (
-        <>
+        <section className="game-container">
             {win && <YouWin score={score} onRestart={handleRestart} />}
             {gameOver && <GameOver score={score} onRestart={handleRestart} />}
 
             {isPaused && (
                 <div className="pause-overlay">
                     <h2>Game Paused</h2>
-                    <p>Switch back to window to resume</p>
+                    <div className="pause-menu-buttons">
+                        <button
+                            onClick={() => setIsPaused(false)}
+                            className="pause-menu-button resume-button"
+                        >
+                            Resume Game
+                        </button>
+                        <button
+                            onClick={() => {
+                                setIsPaused(false);
+                                cleanupGame();
+                                navigate('/');
+                            }}
+                            className="pause-menu-button menu-button"
+                        >
+                            Return to Main Menu
+                        </button>
+                    </div>
+                    <p>Press ESC to toggle pause</p>
                 </div>
             )}
 
             <canvas ref={canvasRef} style={{ display: 'block' }} />
 
-            {/* <img className='fortress' src={fortress} alt="" /> */}
+            <div className='fortress' />
 
             <PassiveSkillCheckboxes
                 skills={passiveSkills}
                 toggleSkill={toggleSkill}
             />
+
+            <div className="music-controls" style={{
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'rgba(0, 0, 0, 0.7)',
+                padding: '10px 15px',
+                borderRadius: '30px',
+                backdropFilter: 'blur(5px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                zIndex: 100
+            }}>
+                <button
+                    onClick={toggleMusic}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#fff',
+                        fontSize: '24px',
+                        cursor: 'pointer',
+                        padding: '5px',
+                        borderRadius: '50%',
+                        width: '40px',
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease',
+                        ':hover': {
+                            background: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }}
+                >
+                    {isMusicPlaying ? '🔊' : '🔇'}
+                </button>
+
+                <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={musicVolume}
+                    onChange={(e) => setVolume(parseFloat(e.target.value))}
+                    style={{
+                        width: '100px',
+                        height: '6px',
+                        borderRadius: '3px',
+                        background: 'rgba(255, 255, 255, 0.2)',
+                        outline: 'none',
+                        appearance: 'none',
+                        '::-webkit-slider-thumb': {
+                            appearance: 'none',
+                            width: '16px',
+                            height: '16px',
+                            borderRadius: '50%',
+                            background: '#4CAF50',
+                            cursor: 'pointer'
+                        }
+                    }}
+                />
+
+                <span style={{
+                    color: '#fff',
+                    fontSize: '14px',
+                    minWidth: '30px',
+                    textAlign: 'center'
+                }}>
+                    {Math.round(musicVolume * 100)}%
+                </span>
+            </div>
 
             <WeaponDisplay
                 currentWeapon={currentWeaponInfo}
@@ -114,7 +187,7 @@ const Game = () => {
                 <span>Drones: {maxDrones}</span>
                 <button onClick={() => updateDroneCount(maxDrones + 1)}>+</button>
             </div>
-        </>
+        </section>
     );
 };
 

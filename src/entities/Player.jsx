@@ -1,5 +1,6 @@
 import { getScaledValue } from "../utils/getScaledValue";
 import { weapons } from "../constansts/constants";
+import { character_hurt, rockSpellSound, slingshotSound, wizardWandSound } from "../assets";
 
 // --- Constants ---a
 const PLAYER_RADIUS = 50;
@@ -32,8 +33,15 @@ class Player {
             lastReloadTime: 0,
         };
 
+        // Animation state
+        this.animationFrame = 0;
+        this.animationTimer = 0;
+        this.animationSpeed = 100; // ms per frame
+        this.isFacingFront = true;
+
         this._reloadTimeRemaining = 0;
         this.reloadModifier = 1.0;
+        this.loadSounds();
     }
 
     heal(amount) {
@@ -89,22 +97,39 @@ class Player {
 
 
     // --- Core Logic Methods ---
-
     update(keys, canvasBounds) {
-        // Use speed modifier for movement calculations
-        const baseSpeed = this.speed * this.speedModifier;
+        const prevVelocity = { ...this.velocity };
 
-        const moveVelocity = { x: 0, y: 0 };
-        if (keys.w) moveVelocity.y -= baseSpeed;
-        if (keys.s) moveVelocity.y += baseSpeed;
-        if (keys.a) moveVelocity.x -= baseSpeed;
-        if (keys.d) moveVelocity.x += baseSpeed;
+        // Your existing movement code...
+        const baseSpeed = this.speed * this.speedModifier;
+        this.velocity = { x: 0, y: 0 };
+        if (keys.w) this.velocity.y -= baseSpeed;
+        if (keys.s) this.velocity.y += baseSpeed;
+        if (keys.a) this.velocity.x -= baseSpeed;
+        if (keys.d) this.velocity.x += baseSpeed;
+
+        // Detect movement change
+        const wasMoving = Math.abs(prevVelocity.x) > 0.1 || Math.abs(prevVelocity.y) > 0.1;
+        const isMoving = Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.y) > 0.1;
+
+        // Update animation timer only when moving
+        const now = Date.now();
+        if (isMoving) {
+            if (!wasMoving) {
+                // Just started moving - reset animation
+                this.animationFrame = 0;
+                this.animationTimer = now;
+            } else if (now - this.animationTimer > this.animationSpeed) {
+                this.animationFrame = (this.animationFrame + 1) % 4;
+                this.animationTimer = now;
+            }
+        }
 
         this.recoilVelocity.x *= RECOIL_DECAY;
         this.recoilVelocity.y *= RECOIL_DECAY;
 
-        this.x += moveVelocity.x + this.recoilVelocity.x;
-        this.y += moveVelocity.y + this.recoilVelocity.y;
+        this.x += this.velocity.x + this.recoilVelocity.x;
+        this.y += this.velocity.y + this.recoilVelocity.y;
 
         if (canvasBounds) {
             this.x = Math.max(this.radius, Math.min(canvasBounds.width - this.radius, this.x));
@@ -134,6 +159,23 @@ class Player {
         return false;
     }
 
+    loadSounds() {
+        this.weaponSounds = {
+            pistol: new Audio(slingshotSound),
+            shotgun: new Audio(wizardWandSound),
+            machinegun: new Audio(rockSpellSound),
+        };
+
+        this.damageSound = new Audio(character_hurt);
+        this.damageSound.volume = 0.7;
+
+        // Optional: Reduce latency
+        Object.values(this.weaponSounds).forEach(audio => {
+            audio.load();
+        });
+        this.damageSound.load();
+    }
+
     applyRecoil(angle) {
         let recoilForce = 0;
         switch (this.currentWeapon.name) {
@@ -158,28 +200,36 @@ class Player {
     attemptFire(mousePos, createBulletsCallback) {
         const weapon = this.currentWeapon;
         const now = Date.now();
-
+    
         if (!weapon.unlocked || weapon.isReloading) return false;
         if (now - weapon.lastFireTime < weapon.fireRate) return false;
         if (weapon.currentAmmo <= 0) {
             this.startReload();
             return false;
         }
-
+    
         const angle = Math.atan2(mousePos.y - this.y, mousePos.x - this.x);
         this.applyRecoil(angle);
-
+    
         weapon.currentAmmo--;
-        // Call the callback provided by GameScene to actually create bullets
         createBulletsCallback(this, weapon, mousePos);
         weapon.lastFireTime = now;
-        this._reloadTimeRemaining = weapon.fireRate; // Set cooldown timer for UI
-
+        this._reloadTimeRemaining = weapon.fireRate;
+    
+        // 🔊 Play shoot sound
+        const shootSound = this.weaponSounds[weapon.name];
+        if (shootSound) {
+            const soundClone = shootSound.cloneNode();
+            soundClone.volume = shootSound.volume;
+            soundClone.play();
+        }
+    
         if (weapon.currentAmmo <= 0) {
             this.startReload();
         }
-        return true; // Fired successfully
-    }
+    
+        return true;
+    }    
 
     switchWeapon(weaponName) {
         if (!weapons[weaponName] || !weapons[weaponName].unlocked) {
@@ -197,7 +247,7 @@ class Player {
             lastReloadTime: 0,
         };
         this._reloadTimeRemaining = 0;
-        
+
         // Add weapon type tracking
         this.currentWeaponType = weaponName;
     }
@@ -208,73 +258,91 @@ class Player {
 
     takeDamage(amount) {
         if (!this.canTakeDamage()) return false;
-
+    
         this.health = Math.max(0, this.health - amount);
         this.lastHitTime = Date.now();
-        this.lastDamageTime = Date.now(); // Add this line
+        this.lastDamageTime = Date.now();
+    
+        // 🔊 Play damage sound
+        if (this.damageSound) {
+            this.damageSound.currentTime = 0;
+            this.damageSound.play();
+        }
+    
         return this.health <= 0;
-    }
+    }    
 
-    draw(ctx, mousePos, playerImage) {
-        if (!playerImage) return;
+    draw(ctx, mousePos, playerSpriteRefs) {
+        // Debug: Verify sprite refs
+        // console.log('Available sprites:', Object.keys(playerSpriteRefs).filter(k => playerSpriteRefs[k]?.current));
 
-        const angle = Math.atan2(mousePos.y - this.y, mousePos.x - this.x);
-        
-        // Define the target dimensions you want the sprite to fit within
-        const targetWidth = this.radius * 3;  // Adjust as needed
-        const targetHeight = this.radius * 3; // Adjust as needed
-        
-        // Calculate the image's natural aspect ratio
-        const imgAspectRatio = playerImage.naturalWidth / playerImage.naturalHeight;
-        const targetAspectRatio = targetWidth / targetHeight;
-        
-        let drawWidth, drawHeight;
-        let offsetX = 0, offsetY = 0;
-        
-        // Calculate dimensions to maintain aspect ratio (object-fit: contain)
-        if (imgAspectRatio > targetAspectRatio) {
-            // Image is wider than target - fit to width
-            drawWidth = targetWidth;
-            drawHeight = targetWidth / imgAspectRatio;
-            offsetY = (targetHeight - drawHeight) / 2;
+        // Determine animation state
+        const isCursorBelow = mousePos.y > this.y;
+        this.isFacingFront = isCursorBelow;
+        const isCursorLeft = mousePos.x < this.x;
+
+        // More sensitive movement detection
+        const isMoving = Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.y) > 0.1;
+        const now = Date.now();
+
+        // Animation frame update
+        if (isMoving) {
+            if (now - this.animationTimer > this.animationSpeed) {
+                this.animationFrame = (this.animationFrame + 1) % 4;
+                this.animationTimer = now;
+                // console.log('Advanced to frame:', this.animationFrame); // Debug
+            }
         } else {
-            // Image is taller than target - fit to height
-            drawHeight = targetHeight;
-            drawWidth = targetHeight * imgAspectRatio;
-            offsetX = ((targetWidth - drawWidth) / 2) - getScaledValue(20);
+            this.animationFrame = 0; // Reset to idle frame
         }
-        
-        // Momentum visual effect
-        if (this.speedModifier > 1.0) {
-            ctx.filter = `hue-rotate(${Date.now() % 360}deg)`;
+
+        // Get current sprite
+        const direction = this.isFacingFront ? 'front' : 'back';
+        const spriteKey = `${direction}_${this.animationFrame}`;
+        const playerImage = playerSpriteRefs[spriteKey]?.current;
+
+        // console.log('Attempting to draw:', spriteKey, 'exists:', !!playerImage);
+
+        if (!playerImage) {
+            console.warn('Missing sprite:', spriteKey);
+            // Fallback to frame 0 if current frame is missing
+            const fallbackKey = `${direction}_0`;
+            const fallbackImage = playerSpriteRefs[fallbackKey]?.current;
+
+            if (fallbackImage) {
+                // console.log('Using fallback frame');
+                playerImage = fallbackImage;
+            } else {
+                // Ultimate fallback - red circle
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                return;
+            }
         }
+
+        // Draw the sprite
+        const scale = this.radius * 2 / Math.max(playerImage.width, playerImage.height);
+        const width = playerImage.width * scale;
+        const height = playerImage.height * scale;
 
         ctx.save();
         ctx.translate(this.x, this.y);
-        ctx.rotate(angle + Math.PI / 2); // Add PI/2 because sprite might face upwards
+        if (isCursorLeft) ctx.scale(-1, 1); // Flip if looking left
 
-        // Draw the image with proper scaling and centering
         ctx.drawImage(
             playerImage,
-            -drawWidth / 2 + offsetX,
-            -drawHeight / 2 + offsetY,
-            drawWidth,
-            drawHeight
+            -width / 2,
+            -height / 2,
+            width,
+            height
         );
 
         ctx.restore();
-
-        // Optional: Draw Gun Direction (DEBUG) - Keep if useful
-        ctx.beginPath();
-        ctx.moveTo(this.x, this.y);
-        ctx.lineTo(this.x + Math.cos(angle) * 30, this.y + Math.sin(angle) * 30);
-        ctx.strokeStyle = 'rgba(255, 0, 0, 0)'; // Invisible
-        ctx.lineWidth = 4;
-        ctx.stroke();
-
-        ctx.filter = 'none'; // Reset filter
     }
-    
+
+
     reset(initialX, initialY) {
         this.x = initialX;
         this.y = initialY;

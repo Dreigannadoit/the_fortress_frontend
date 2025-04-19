@@ -220,55 +220,49 @@ export default class Drone {
     }
 
     draw(ctx) {
-        ctx.fillStyle = '#00ffff';
+        // --- Base Orb ---
+        ctx.save();
+    
+        // Draw the glowing effect (faint outer aura)
+        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2);
+        gradient.addColorStop(0, 'rgba(0, 255, 255, 0.7)'); // Bright center
+        gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');   // Fade to transparent
+    
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+        ctx.fill();
+    
+        // Draw the inner core (solid orb)
+        ctx.fillStyle = '#00faff'; // Bright cyan core
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
-
-
-        // Debug drawing
+    
+        ctx.restore();
+    
+        // --- Optional: Light twinkle/sparkle ---
+        /*
+        ctx.save();
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(this.x - 2, this.y);
+        ctx.lineTo(this.x + 2, this.y);
+        ctx.moveTo(this.x, this.y - 2);
+        ctx.lineTo(this.x, this.y + 2);
+        ctx.stroke();
+        ctx.restore();
+        */
+    
+        // --- Debug drawing (still available if needed) ---
         if (this.targetEnemy) {
             ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
             ctx.beginPath();
             ctx.moveTo(this.x, this.y);
             ctx.lineTo((this.targetEnemy.x + 10), (this.targetEnemy.y + 10));
             ctx.stroke();
-
-            // ctx.strokeStyle = 'rgba(0, 255, 0, 0.2)';
-            // ctx.beginPath();
-            // ctx.arc(this.targetEnemy.x, this.targetEnemy.y, this.attackHoverDistance, 0, Math.PI * 2);
-            // ctx.stroke();
         }
-
-        // --- Debug Drawing (Optional, very helpful for tuning) ---
-
-        /*
-        // Draw target line
-        if (this.targetEnemy) {
-            ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)'; // Red line to enemy
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(this.x, this.y);
-            ctx.lineTo(this.targetEnemy.x, this.targetEnemy.y);
-            ctx.stroke();
-        }
-    
-        // Draw circle for attackHoverDistance around ENEMY
-        if (this.targetEnemy) {
-            ctx.strokeStyle = 'rgba(0, 255, 0, 0.2)'; // Green circle around enemy
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.arc(this.targetEnemy.x, this.targetEnemy.y, this.attackHoverDistance, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-    
-        // Draw circle for Drone Separation around THIS drone
-        ctx.strokeStyle = 'rgba(0, 0, 255, 0.1)'; // Blue circle around drone
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, Drone.droneSeparationDistance, 0, Math.PI * 2);
-        ctx.stroke();
-        */
-
     }
+    
 }

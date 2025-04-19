@@ -63,3 +63,20 @@ npm install
 
 # Start development server
 npm run dev
+```
+
+
+Credits
+
+Music
+
+DJARTMUSIC - The Return Of The 8-bit Era- https://pixabay.com/music/search/genre/video%20games/
+DJARTMUSIC - Best Game Console - https://pixabay.com/music/search/genre/video%20games/
+
+SFX - https://pixabay.com
+
+Graphics
+
+pixel-boy - Ninja Adventure - Asset Pack - https://pixel-boy.itch.io/ninja-adventure-asset-pack
+
+

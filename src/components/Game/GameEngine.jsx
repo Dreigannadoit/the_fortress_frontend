@@ -7,9 +7,10 @@ import { TURRET_CONFIG, ENEMY_SPAWN_COUNT, ENEMY_SPAWN_INTERVAL, BASE_DAMAGE_INT
 import calculateDistance from "../../utils/calculateDistance";
 import { getRandomEnemyType } from "../../utils/getRandomEnemyType";
 import { Item } from "../../entities/Item";
+import { background_gameplay_1, background_gameplay_2, tree_0, tree_1, tree_2 } from "../../assets";
 
 
-const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageRef) => {
+const useGameEngine = (canvasRef, gameDuration) => {
     const gunOffset = 24;
 
     // Game state
@@ -28,6 +29,7 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
     const [isReloading, setIsReloading] = useState(false);
     const [reloadTime, setReloadTime] = useState(0);
     const [itemSpawnTimer, setItemSpawnTimer] = useState(0);
+    const [spritesLoaded, setSpritesLoaded] = useState(false);
     const [passiveSkills, setPassiveSkills] = useState({
         recovery: false,
         lifeSteal: false,
@@ -35,10 +37,27 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
         momentum: false,
         fastReload: false
     });
-    const [maxDrones, setMaxDrones] = useState(4);
+    const [maxDrones, setMaxDrones] = useState(1);
+    const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+    const [musicVolume, setMusicVolume] = useState(0.5); // Default volume (0-1)
+
 
     // Refs for game objects
+    const currentTrackIndex = useRef(0);
+    const audioRef = useRef(null);
+
     const playerRef = useRef(null);
+    const playerSpriteRefs = {
+        front_0: useRef(null),
+        front_1: useRef(null),
+        front_2: useRef(null),
+        front_3: useRef(null),
+        back_0: useRef(null),
+        back_1: useRef(null),
+        back_2: useRef(null),
+        back_3: useRef(null),
+    };
+
     const drones = useRef([]);
     const turrets = useRef([
         { x: 150, y: null, angle: 0, targetEnemy: null, lastFireTime: 0 },
@@ -50,8 +69,8 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
 
     // Add enemy sprite refs
     const enemySpriteRefs = useRef({
-        normal: Array(8).fill().map(() => ({ current: null })),
-        fast: Array(8).fill().map(() => ({ current: null })),
+        normal: Array(4).fill().map(() => ({ current: null })),
+        fast: Array(4).fill().map(() => ({ current: null })),
         tank: Array(8).fill().map(() => ({ current: null }))
     });
 
@@ -70,11 +89,48 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
         }
     }, []);
 
+    useEffect(() => {
+        const loadSprites = async () => {
+            try {
+                // Front sprites
+                for (let i = 0; i < 4; i++) {
+                    const img = new Image();
+                    img.src = `src/assets/player_ref/front/player_front_${i}.png`;
+                    img.onload = () => {
+                        // console.log(`Successfully loaded front_${i}`, img);
+                        playerSpriteRefs[`front_${i}`].current = img;
+                        // Check if all sprites are loaded
+                        const allLoaded = Object.values(playerSpriteRefs).every(ref => ref.current);
+                        if (allLoaded) setSpritesLoaded(true);
+                    };
+                    img.onerror = () => console.error(`Failed to load front_${i} from ${img.src}`);
+
+                }
+
+                for (let i = 0; i < 4; i++) {
+                    const img = new Image();
+                    img.src = `src/assets/player_ref/back/player_back_${i}.png`;
+                    img.onload = () => {
+                        // console.log(`Successfully loaded back_${i}`, img);
+                        playerSpriteRefs[`back_${i}`].current = img;
+                        // Check if all sprites are loaded
+                        const allLoaded = Object.values(playerSpriteRefs).every(ref => ref.current);
+                        if (allLoaded) setSpritesLoaded(true);
+                    };
+                    img.onerror = () => console.error(`Failed to load back${i} from ${img.src}`);
+                }
+            } catch (error) {
+                console.error('Error loading sprites:', error);
+            }
+        };
+        loadSprites();
+    }, []);
+
     // Preload enemy sprites
     useEffect(() => {
         const types = ['normal', 'fast', 'tank'];
         types.forEach(type => {
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 4; i++) {
                 const img = new Image();
                 // Use absolute path from public folder or correct relative path
                 img.src = `src/assets/animation/${type}/${type}_${i}.png`;
@@ -92,25 +148,99 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
         if (Math.random() < ITEM_SPAWN_CHANCE) {
             const canvas = canvasRef.current;
             if (!canvas) return;
-            
+
             // Random position in safe zone (not too close to edges)
             const padding = 100;
             const x = padding + Math.random() * (canvas.width - padding * 2);
             const y = padding + Math.random() * (canvas.height - padding * 2);
-            
+
             // Create medkit with healing effect
             const medkit = new Item(x, y, 'medkit', (player) => {
                 player.heal(30); // Heal 30 HP
                 return true; // Item was successfully used
             });
-            
+
             items.current.push(medkit);
         }
     }, []);
 
+    const playBackgroundMusic = useCallback(() => {
+        // Stop any existing music
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
+        }
+
+        const tracks = [background_gameplay_1, background_gameplay_2];
+        currentTrackIndex.current = 0;
+
+        const playTrack = () => {
+            audioRef.current = new Audio(tracks[currentTrackIndex.current]);
+            audioRef.current.volume = musicVolume;
+
+            audioRef.current.play()
+                .then(() => {
+                    setIsMusicPlaying(true);
+                })
+                .catch(e => {
+                    console.warn("Background music play failed:", e);
+                    // Implement fallback or user notification if needed
+                });
+
+            // When current track ends, play the next one
+            audioRef.current.addEventListener('ended', () => {
+                currentTrackIndex.current = (currentTrackIndex.current + 1) % tracks.length;
+                playTrack();
+            });
+        };
+
+        playTrack();
+    }, [musicVolume]);
+
+    const toggleMusic = useCallback(() => {
+        if (isMusicPlaying) {
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
+            setIsMusicPlaying(false);
+        } else {
+            playBackgroundMusic();
+        }
+    }, [isMusicPlaying, playBackgroundMusic]);
+
+    const setVolume = useCallback((volume) => {
+        setMusicVolume(volume);
+        if (audioRef.current) {
+            audioRef.current.volume = volume;
+        }
+    }, []);
+
+    // Start music when game starts
     useEffect(() => {
-        if (win || gameOver) return;
-        
+        if (!win && !gameOver && !isPaused) {
+            playBackgroundMusic();
+        } else {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                setIsMusicPlaying(false);
+            }
+        }
+    }, [win, gameOver, isPaused, playBackgroundMusic]);
+
+    // Clean up audio on unmount
+    useEffect(() => {
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current = null;
+            }
+        };
+    }, []);
+
+    // item spawn timer
+    useEffect(() => {
+        if (win || gameOver || isPaused) return;
+
         const itemInterval = setInterval(() => {
             setItemSpawnTimer(prev => {
                 const newTime = prev + 1000;
@@ -121,27 +251,26 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
                 return newTime;
             });
         }, 1000);
-        
         return () => clearInterval(itemInterval);
-    }, [win, gameOver, spawnItem]);
+    }, [win, gameOver, isPaused, spawnItem]);
 
     const checkItemCollisions = useCallback(() => {
         const player = playerRef.current;
         if (!player) return;
-        
+
         const playerPos = player.getPosition();
         const playerRadius = player.getRadius();
-        
+
         items.current = items.current.filter(item => {
             if (item.collected) return false;
-            
+
             // Check distance to player
             const distance = calculateDistance(
                 playerPos.x, playerPos.y,
                 item.x, item.y
             );
-            
-            if (distance < playerRadius + item.size/2) {
+
+            if (distance < playerRadius + item.size / 2) {
                 // Apply item effect
                 const success = item.effect(player);
                 if (success) {
@@ -149,11 +278,11 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
                     return false; // Remove collected item
                 }
             }
-            
+
             return true; // Keep uncollected item
         });
     }, []);
-    
+
 
     // Game logic methods
     const createBullet = useCallback((x, y, size, bulletSpeed, angle, range, damage, weaponType) => ({
@@ -236,12 +365,17 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
         mousePos.current = { x: 0, y: 0 };
     }, [INITIAL_BASE_HEALTH]);
 
+    const cleanupGame = useCallback(() => {
+        handleRestart(); 
+    }, [handleRestart]);
+    
     // Input handlers
     const handleMouseMove = useCallback((e) => {
         mousePos.current = { x: e.clientX, y: e.clientY };
     }, []);
 
     const handleWeaponFire = useCallback(() => {
+        if (isPaused) return; // Add this line
         const player = playerRef.current;
         if (!player) return;
 
@@ -249,15 +383,16 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
         setCurrentAmmo(player.getCurrentAmmo());
         setIsReloading(player.isReloading());
         setReloadTime(player.getReloadTimeRemaining());
-    }, [createBulletsCallbackForPlayer]);
+    }, [createBulletsCallbackForPlayer, isPaused]);
 
     const handleMouseDown = useCallback((e) => {
+        if (isPaused) return; // Add this line
         mouseDown.current = true;
         const player = playerRef.current;
         if (player && !player.getCurrentWeaponInfo().isAutomatic) {
             handleWeaponFire();
         }
-    }, [handleWeaponFire]);
+    }, [handleWeaponFire, isPaused]);
 
     const handleMouseUp = useCallback(() => {
         mouseDown.current = false;
@@ -278,7 +413,7 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
     const handleKeyDown = useCallback((e) => {
         const key = e.key.toLowerCase();
         if (keys.current.hasOwnProperty(key)) keys.current[key] = true;
-
+    
         switch (key) {
             case '1': handleWeaponSwitch('pistol'); break;
             case '2': handleWeaponSwitch('shotgun'); break;
@@ -287,6 +422,12 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
                 playerRef.current?.startReload();
                 setIsReloading(playerRef.current?.isReloading() ?? false);
                 setReloadTime(playerRef.current?.getReloadTimeRemaining() ?? 0);
+                break;
+            case 'escape':
+                setIsPaused(prev => !prev);
+                break;
+            case 'p':  // Add alternative pause/resume key
+                setIsPaused(prev => !prev);
                 break;
             default: break;
         }
@@ -336,20 +477,20 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
 
     // Timer systems
     useEffect(() => {
-        if (win || gameOver) return;
+        if (win || gameOver || isPaused) return;
         const timerInterval = setInterval(() => {
             setTimeElapsed(prev => prev + 1000);
         }, 1000);
         return () => clearInterval(timerInterval);
-    }, [win, gameOver]);
+    }, [win, gameOver, isPaused]);
 
     useEffect(() => {
-        if (win || gameOver) return;
+        if (win || gameOver || isPaused) return;
         const scalingInterval = setInterval(() => {
             setEnemyScalingFactor(prev => prev * 1.5);
         }, 30000);
         return () => clearInterval(scalingInterval);
-    }, [win, gameOver]);
+    }, [win, gameOver, isPaused]);
 
     // Main game loop
     useEffect(() => {
@@ -426,14 +567,13 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
             updateItems();
 
             // Draw game objects:
-            drawEnvironment(); 
-            drawItems(); 
+            drawEnvironment();
+            drawItems();
             drawPlayer();
-            drawFortress();    
             drawEnemies();
             drawBullets();
             drawDrones();
-            drawTurrets();     
+            drawTurrets();
             drawCursor();
 
             // Collision Item check
@@ -444,7 +584,7 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
 
         const updatePlayer = () => {
             const player = playerRef.current;
-            if (!player) return;
+            if (!player || isPaused) return;
 
             // Handle automatic weapon firing
             const weaponInfo = player.getCurrentWeaponInfo();
@@ -519,9 +659,9 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
                     if (enemy.y > maxY) {
                         enemy.y = maxY;
                         enemy.isStopped = true;
-                        if (!enemy.damageInterval && baseHealth > 0) {
+                        if (!enemy.damageInterval && baseHealth > 0 && !isPaused) {
                             enemy.damageInterval = setInterval(() => {
-                                if (win || gameOver) {
+                                if (win || gameOver || isPaused) {
                                     clearInterval(enemy.damageInterval);
                                     enemy.damageInterval = null;
                                     return;
@@ -580,7 +720,7 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
                 return true;
             });
         };
-        
+
         const updateItems = () => {
             items.current = items.current.filter(item => {
                 item.update();
@@ -674,31 +814,6 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
             });
         };
 
-        // Draw methods
-        const drawFortress = () => {
-            const lineY = canvas.height - LINE_Y_OFFSET;
-        
-            if (!fortressImageRef.current) return;
-        
-            // Calculate height from the line down
-            const fortressHeight = canvas.height - lineY;
-        
-            // Draw one scaled image to span the entire canvas width
-            ctx.drawImage(
-                fortressImageRef.current,
-                0,
-                lineY,
-                canvas.width,
-                fortressHeight
-            );
-        
-            // Optional overlay for blending
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-            ctx.fillRect(0, lineY, canvas.width, fortressHeight);
-        
-            console.log("Fortress image loaded and stretched.");
-        };
-
         const drawItems = () => {
             items.current.forEach(item => item.draw(ctx));
         };
@@ -720,7 +835,7 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
 
             console.log("Current player weapon:", player.currentWeaponType);
 
-            player.draw(ctx, mousePos.current, currentSprite);
+            player.draw(ctx, mousePos.current, playerSpriteRefs);
         };
 
         const drawEnemies = () => {
@@ -792,143 +907,108 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
             const lineY = canvas.height - LINE_Y_OFFSET;
             turrets.current.forEach(turret => {
                 if (!turret.y) turret.y = lineY + 50;
-        
-                const baseRadius = TURRET_CONFIG.size / 2;
-                const barrelWidth = TURRET_CONFIG.size / 4;
-                const barrelHeight = TURRET_CONFIG.size / 4;
+
+                const size = TURRET_CONFIG.size;
+                const baseSize = size;
+                const barrelWidth = size / 4;
+                const barrelHeight = size / 4;
                 const barrelLength = TURRET_CONFIG.barrelLength;
-        
+                const range = TURRET_CONFIG.range;
+
                 ctx.save();
-        
-                // --- Base with gradient and outline ---
-                ctx.beginPath();
-                ctx.arc(turret.x, turret.y, baseRadius, 0, Math.PI * 2);
-                const baseGradient = ctx.createRadialGradient(
-                    turret.x, turret.y - baseRadius / 2, baseRadius / 4,
-                    turret.x, turret.y, baseRadius
-                );
-                baseGradient.addColorStop(0, '#666');
-                baseGradient.addColorStop(1, '#333');
-                ctx.fillStyle = baseGradient;
-                ctx.fill();
-        
-                ctx.strokeStyle = 'black';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-        
-                // --- Top cap with steel effect and outline ---
-                ctx.beginPath();
-                ctx.arc(turret.x, turret.y, baseRadius * 0.9, 0, Math.PI * 2);
-                const topGradient = ctx.createRadialGradient(
-                    turret.x, turret.y, 0,
-                    turret.x, turret.y, baseRadius * 0.9
-                );
-                topGradient.addColorStop(0, '#aaa');
-                topGradient.addColorStop(1, '#555');
-                ctx.fillStyle = topGradient;
-                ctx.fill();
-        
-                ctx.strokeStyle = 'black';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-        
-                // --- Draw barrel ---
+                ctx.imageSmoothingEnabled = false;
+
+                const x = Math.floor(turret.x);
+                const y = Math.floor(turret.y);
+
+                // --- Range Radar Lines (Optional Retro Style) ---
+                if (turret.isSelected || turret.targetEnemy) {
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(100, 150, 255, 0.3)';
+                    ctx.lineWidth = 1;
+
+                    const steps = 16;
+                    for (let i = 0; i < steps; i++) {
+                        const angle = (i / steps) * Math.PI * 2;
+                        const dx = Math.floor(x + Math.cos(angle) * range);
+                        const dy = Math.floor(y + Math.sin(angle) * range);
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(dx, dy);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
+
+                // --- Base ---
+                const baseX = x - baseSize / 2;
+                const baseY = y - baseSize / 2;
+
+                // Fill
+                ctx.fillStyle = '#4b4b4b';
+                ctx.fillRect(baseX, baseY, baseSize, baseSize);
+
+                // Thick Outline
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#1a1a1a';
+                ctx.strokeRect(baseX - 1, baseY - 1, baseSize + 2, baseSize + 2); // Slight offset for better pixel effect
+
+                // Base Highlights
+                ctx.fillStyle = '#777';
+                ctx.fillRect(baseX, baseY, baseSize, 2);
+                ctx.fillRect(baseX, baseY, 2, baseSize);
+
+                // --- Barrel ---
                 ctx.save();
-                ctx.translate(turret.x, turret.y);
+                ctx.translate(x, y);
                 ctx.rotate(turret.angle);
-        
-                // Barrel base shadow
-                ctx.fillStyle = '#222';
-                ctx.fillRect(
-                    baseRadius * 0.2,
-                    -barrelHeight / 2,
-                    barrelLength,
-                    barrelHeight
-                );
-        
-                // Barrel body with metallic gradient
-                const barrelGradient = ctx.createLinearGradient(
-                    0, -barrelHeight / 2,
-                    0, barrelHeight / 2
-                );
-                barrelGradient.addColorStop(0, '#aaa');
-                barrelGradient.addColorStop(0.5, '#888');
-                barrelGradient.addColorStop(1, '#666');
-        
-                ctx.fillStyle = barrelGradient;
-                ctx.fillRect(
-                    baseRadius * 0.2,
-                    -barrelHeight / 2,
-                    barrelLength,
-                    barrelHeight
-                );
-        
-                // Top highlight
-                ctx.fillStyle = '#ccc';
-                ctx.fillRect(
-                    baseRadius * 0.2,
-                    -barrelHeight / 2,
-                    barrelLength,
-                    barrelHeight * 0.2
-                );
-        
-                // Barrel outline
-                ctx.strokeStyle = 'black';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(
-                    baseRadius * 0.2,
-                    -barrelHeight / 2,
-                    barrelLength,
-                    barrelHeight
-                );
-        
-                // Muzzle tip
-                ctx.fillStyle = '#333';
-                ctx.fillRect(
-                    baseRadius * 0.2 + barrelLength,
-                    -barrelHeight / 2,
-                    barrelHeight * 0.5,
-                    barrelHeight
-                );
-                ctx.strokeRect(
-                    baseRadius * 0.2 + barrelLength,
-                    -barrelHeight / 2,
-                    barrelHeight * 0.5,
-                    barrelHeight
-                );
-        
-                // Mounting hardware
-                ctx.beginPath();
-                ctx.arc(0, 0, baseRadius * 0.3, 0, Math.PI * 2);
-                ctx.fillStyle = '#444';
-                ctx.fill();
-                ctx.strokeStyle = 'black';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-        
+
+                const barrelX = Math.floor(baseSize / 2);
+                const barrelY = Math.floor(-barrelHeight / 2);
+
+                // Shadow
+                ctx.fillStyle = '#2a2a2a';
+                ctx.fillRect(barrelX + 1, barrelY + 1, barrelLength, barrelHeight);
+
+                // Main Barrel
+                ctx.fillStyle = '#797979';
+                ctx.fillRect(barrelX, barrelY, barrelLength, barrelHeight);
+
+                // Barrel Outline
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#111';
+                ctx.strokeRect(barrelX - 1, barrelY - 1, barrelLength + 2, barrelHeight + 2);
+
+                // Barrel Rings
+                ctx.fillStyle = '#505050';
+                for (let i = 6; i < barrelLength - 4; i += 8) {
+                    ctx.fillRect(barrelX + i, barrelY, 2, barrelHeight);
+                }
+
+                // Muzzle Tip
+                ctx.fillStyle = '#2b2b2b';
+                ctx.fillRect(barrelX + barrelLength, barrelY, 4, barrelHeight);
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#000';
+                ctx.strokeRect(barrelX + barrelLength - 1, barrelY - 1, 6, barrelHeight + 2);
+
                 ctx.restore();
-        
-                // --- Range circle ---
-                ctx.beginPath();
-                ctx.arc(turret.x, turret.y, TURRET_CONFIG.range, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(100, 100, 255, 0.1)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-        
-                ctx.restore();
-        
-                // --- Targeting line ---
+
+                // --- Targeting Line ---
                 if (turret.targetEnemy) {
                     ctx.beginPath();
-                    ctx.moveTo(turret.x, turret.y);
-                    ctx.lineTo(turret.targetEnemy.x, turret.targetEnemy.y);
-                    ctx.strokeStyle = 'rgba(255, 50, 50, 0.3)';
-                    ctx.lineWidth = 1;
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(Math.floor(turret.targetEnemy.x), Math.floor(turret.targetEnemy.y));
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+                    ctx.lineWidth = 2;
                     ctx.stroke();
                 }
+
+                ctx.restore();
             });
         };
-        
+
+
 
         const drawDrones = () => {
             drones.current.forEach(drone => drone.draw(ctx));
@@ -937,8 +1017,9 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
         const drawEnvironment = () => {
             const lineY = canvas.height - LINE_Y_OFFSET;
             const spawnZoneWidth = canvas.width * 0.1;
+            const playableWidth = canvas.width - (2 * spawnZoneWidth); // Central 80% of canvas
 
-            // Draw spawn zones
+            // Draw spawn zones with semi-transparent background
             ctx.fillStyle = 'rgba(128, 128, 128, 0.2)';
             ctx.fillRect(0, 0, spawnZoneWidth, canvas.height); // Left
             ctx.fillRect(canvas.width - spawnZoneWidth, 0, spawnZoneWidth, canvas.height); // Right
@@ -950,6 +1031,29 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
             ctx.strokeStyle = 'blue';
             ctx.lineWidth = 4;
             ctx.stroke();
+
+            const tree_0 = new Image();
+            tree_0.src = tree_0;
+
+            const tree_1 = new Image();
+            tree_1.src = tree_1;
+
+            const tree_2 = new Image();
+            tree_2.src = tree_2;
+
+            // Draw trees (example with 3 trees)
+            const treeAssets = [tree_0, tree_1, tree_2]; // Your tree image assets
+            const treeCount = 3;
+            const minTreeX = spawnZoneWidth; // Start after left spawn zone
+            const maxTreeX = canvas.width - spawnZoneWidth; // End before right spawn zone
+
+            for (let i = 0; i < treeCount; i++) {
+                // Random position in playable area (excluding spawn zones)
+                const treeX = minTreeX + Math.random() * (maxTreeX - minTreeX - 50); // 50 is approximate tree width
+                const treeY = lineY - treeAssets[i].height; // Place trees on the ground line
+
+                ctx.drawImage(treeAssets[i], treeX, treeY);
+            }
         };
 
         // Helper functions
@@ -996,18 +1100,21 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
         return () => {
             clearInterval(enemySpawnIntervalId);
             cancelAnimationFrame(animationFrameId);
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mousedown', handleMouseDown);
-            window.removeEventListener('mouseup', handleMouseUp);
-            window.removeEventListener('keydown', handleKeyDown);
-            window.removeEventListener('keyup', handleKeyUp);
+            if (isPaused) {
 
-            enemies.current.forEach(enemy => {
-                if (enemy.damageInterval) {
-                    clearInterval(enemy.damageInterval);
-                    enemy.damageInterval = null;
-                }
-            });
+                window.removeEventListener('mousemove', handleMouseMove);
+                window.removeEventListener('mousedown', handleMouseDown);
+                window.removeEventListener('mouseup', handleMouseUp);
+                window.removeEventListener('keydown', handleKeyDown);
+                window.removeEventListener('keyup', handleKeyUp);
+
+                enemies.current.forEach(enemy => {
+                    if (enemy.damageInterval) {
+                        clearInterval(enemy.damageInterval);
+                        enemy.damageInterval = null;
+                    }
+                });
+            }
         };
     }, [
         win, gameOver, isPaused, enemyScalingFactor,
@@ -1032,6 +1139,9 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
         maxDrones,
         items: items.current,
 
+        isMusicPlaying,
+        musicVolume,
+
         // Methods
         handleRestart,
         toggleSkill: (skill) => setPassiveSkills(prev => ({ ...prev, [skill]: !prev[skill] })),
@@ -1043,7 +1153,11 @@ const useGameEngine = (canvasRef, playerSpriteRefs, gameDuration, fortressImageR
         handleMouseUp,
         handleKeyDown,
         handleKeyUp,
-        handleWeaponSwitch
+        handleWeaponSwitch,
+        setIsPaused,
+        cleanupGame,
+        toggleMusic,
+        setVolume,
     };
 };
 

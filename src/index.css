@@ -34,15 +34,69 @@ canvas {
   cursor: none;
 }
 
+.game-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+
+  background: url('./assets/floor.png') repeat center center;
+  background-size: 50%;
+}
+
+/* Add these styles to your CSS */
 .pause-overlay {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 2rem;
-  border-radius: 10px;
-  text-align: center;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   z-index: 1000;
+  color: white;
+  font-size: 2rem;
+  text-align: center;
+}
+
+.pause-menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.pause-menu-button {
+  padding: 15px 30px;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 200px;
+  text-align: center;
+}
+
+.resume-button {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.menu-button {
+  background-color: #f44336;
+  color: white;
+}
+
+.pause-menu-button:hover {
+  transform: scale(1.05);
+}
+
+.resume-button:hover {
+  background-color: #45a049;
+}
+
+.menu-button:hover {
+  background-color: #d32f2f;
 }
