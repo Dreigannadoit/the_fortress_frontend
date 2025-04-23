@@ -21,6 +21,8 @@ const useGameEngine = (canvasRef, gameDuration) => {
     const [score, setScore] = useState(0);
     const [timeElapsed, setTimeElapsed] = useState(0);
     const [enemyScalingFactor, setEnemyScalingFactor] = useState(1);
+    const [currentEnemySpawnCount, setCurrentEnemySpawnCount] = useState(ENEMY_SPAWN_COUNT);
+
 
     // Player state
     const [playerHealth, setPlayerHealth] = useState(100);
@@ -37,6 +39,16 @@ const useGameEngine = (canvasRef, gameDuration) => {
         momentum: false,
         fastReload: false
     });
+
+    const [screenShake, setScreenShake] = useState({
+        offsetX: 0,
+        offsetY: 0,
+        active: false,
+        endTime: 0,
+        intensity: 0
+    });
+    
+
     const [maxDrones, setMaxDrones] = useState(1);
     const [isMusicPlaying, setIsMusicPlaying] = useState(false);
     const [musicVolume, setMusicVolume] = useState(0.5); // Default volume (0-1)
@@ -283,7 +295,6 @@ const useGameEngine = (canvasRef, gameDuration) => {
         });
     }, []);
 
-
     // Game logic methods
     const createBullet = useCallback((x, y, size, bulletSpeed, angle, range, damage, weaponType) => ({
         x, y, size,
@@ -337,6 +348,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
         setScore(0);
         setTimeElapsed(0);
         setEnemyScalingFactor(1);
+        setCurrentEnemySpawnCount(ENEMY_SPAWN_COUNT); // Reset to initial value
         items.current = [];
         setItemSpawnTimer(0);
 
@@ -366,9 +378,9 @@ const useGameEngine = (canvasRef, gameDuration) => {
     }, [INITIAL_BASE_HEALTH]);
 
     const cleanupGame = useCallback(() => {
-        handleRestart(); 
+        handleRestart();
     }, [handleRestart]);
-    
+
     // Input handlers
     const handleMouseMove = useCallback((e) => {
         mousePos.current = { x: e.clientX, y: e.clientY };
@@ -413,7 +425,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
     const handleKeyDown = useCallback((e) => {
         const key = e.key.toLowerCase();
         if (keys.current.hasOwnProperty(key)) keys.current[key] = true;
-    
+
         switch (key) {
             case '1': handleWeaponSwitch('pistol'); break;
             case '2': handleWeaponSwitch('shotgun'); break;
@@ -436,6 +448,16 @@ const useGameEngine = (canvasRef, gameDuration) => {
     const handleKeyUp = useCallback((e) => {
         const key = e.key.toLowerCase();
         if (keys.current.hasOwnProperty(key)) keys.current[key] = false;
+    }, []);
+
+    const applyScreenShake = useCallback((intensity = 5, duration = 100) => {
+        setScreenShake({
+            offsetX: 0,
+            offsetY: 0,
+            active: true,
+            endTime: Date.now() + duration,
+            intensity
+        });
     }, []);
 
     // Game systems
@@ -475,7 +497,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
         }
     }, [playerHealth, baseHealth, gameOver, win]);
 
-    // Timer systems
+    // Timer systems 
     useEffect(() => {
         if (win || gameOver || isPaused) return;
         const timerInterval = setInterval(() => {
@@ -484,10 +506,22 @@ const useGameEngine = (canvasRef, gameDuration) => {
         return () => clearInterval(timerInterval);
     }, [win, gameOver, isPaused]);
 
+    // Add more enemies as the game progresses
+    useEffect(() => {
+        if (win || gameOver || isPaused) return;
+        const maxEnemysSpawnCount = 20;
+        const spawnCountInterval = setInterval(() => {
+            setCurrentEnemySpawnCount(prev => Math.min(prev + 1, maxEnemysSpawnCount)); // Max of 20 enemies per wave
+        }, 30000);
+        return () => clearInterval(spawnCountInterval);
+    }, [win, gameOver, isPaused]);
+
+
+    // Make neemies harder to defeat
     useEffect(() => {
         if (win || gameOver || isPaused) return;
         const scalingInterval = setInterval(() => {
-            setEnemyScalingFactor(prev => prev * 1.5);
+            setEnemyScalingFactor(prev => prev * 1.2);
         }, 30000);
         return () => clearInterval(scalingInterval);
     }, [win, gameOver, isPaused]);
@@ -521,7 +555,8 @@ const useGameEngine = (canvasRef, gameDuration) => {
                 grid[key] = true;
             });
 
-            for (let i = 0; i < ENEMY_SPAWN_COUNT; i++) {
+            // Use currentEnemySpawnCount instead of ENEMY_SPAWN_COUNT
+            for (let i = 0; i < currentEnemySpawnCount; i++) {
                 const type = getRandomEnemyType();
                 const y = -100;
                 let x;
@@ -554,19 +589,29 @@ const useGameEngine = (canvasRef, gameDuration) => {
                 animationFrameId = requestAnimationFrame(updateGame);
                 return;
             }
-
+        
+            // Update screen shake first
+            updateScreenShake();
+        
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Update game state
+        
+            // Save context before applying transformations
+            ctx.save();
+        
+            // Apply screen shake if active
+            if (screenShake.active) {
+                ctx.translate(screenShake.offsetX, screenShake.offsetY);
+            }
+        
+            // Update and draw all game objects here...
             updatePlayer();
             updateEnemies();
             updateBullets();
             updateTurrets();
             updateDrones();
             updateItems();
-
-            // Draw game objects:
+        
             drawEnvironment();
             drawItems();
             drawPlayer();
@@ -575,12 +620,33 @@ const useGameEngine = (canvasRef, gameDuration) => {
             drawDrones();
             drawTurrets();
             drawCursor();
-
-            // Collision Item check
+        
+            // Restore context
+            ctx.restore();
+        
             checkItemCollisions();
-
+        
             animationFrameId = requestAnimationFrame(updateGame);
         };
+
+        const updateScreenShake = useCallback(() => {
+            if (!screenShake.active || Date.now() > screenShake.endTime) {
+                if (screenShake.active) {
+                    setScreenShake(prev => ({ ...prev, active: false, offsetX: 0, offsetY: 0 }));
+                }
+                return;
+            }
+        
+            const progress = (screenShake.endTime - Date.now()) / (screenShake.endTime - (screenShake.endTime - screenShake.duration));
+            const decay = progress; // Goes from 1 to 0
+            const intensity = screenShake.intensity * decay;
+        
+            setScreenShake(prev => ({
+                ...prev,
+                offsetX: (Math.random() * 2 - 1) * intensity,
+                offsetY: (Math.random() * 2 - 1) * intensity
+            }));
+        }, [screenShake.active, screenShake.endTime, screenShake.intensity, screenShake.duration]);
 
         const updatePlayer = () => {
             const player = playerRef.current;
@@ -679,11 +745,28 @@ const useGameEngine = (canvasRef, gameDuration) => {
                 let hitByBullet = false;
                 bullets.current = bullets.current.filter((bullet) => {
                     if (checkCollision(bullet, enemy)) {
-                        const knockbackForce = bullet.weaponType === 'shotgun' ? 8 :
-                            (bullet.weaponType === 'turret' ? 1 : 0);
-                        const angle = bullet.angle ?? 0;
+                        // Trigger screen shake based on weapon type
+                        const shakeIntensity = 
+                            bullet.weaponType === 'shotgun' ? 15 :
+                            bullet.weaponType === 'pistol' ? 8 :
+                            bullet.weaponType === 'machinegun' ? 5 : 3;
+                        applyScreenShake(shakeIntensity, 200); // More noticeable duration
 
-                        if (enemy.takeDamage(bullet.damage, knockbackForce, angle)) {
+                        const knockbackForce =
+                            bullet.weaponType === 'shotgun' ? 8 :
+                                bullet.weaponType === 'pistol' ? 3 :
+                                    bullet.weaponType === 'machinegun' ? 2 :
+                                        bullet.weaponType === 'turret' ? 1 : 0;
+
+                        const angle = bullet.angle ?? Math.atan2(
+                            bullet.y - (enemy.y + enemy.size / 2),
+                            bullet.x - (enemy.x + enemy.size / 2)
+                        );
+
+                        
+                        const enemyKilledByThisHit = enemy.takeDamage(bullet.damage, knockbackForce, angle);
+
+                        if (enemyKilledByThisHit) {
                             hitByBullet = true;
                             setScore(prev => prev + enemy.score);
 
@@ -749,11 +832,13 @@ const useGameEngine = (canvasRef, gameDuration) => {
             turrets.current.forEach(turret => {
                 if (isPaused) return;
 
-                // Position turrets if not already positioned
-                if (!turret.y) turret.y = canvas.height - LINE_Y_OFFSET + 50;
-                if (turret.x === null) turret.x = canvas.width - 150;
+                // Set default turret position
+                if (turret.y === null || turret.y === undefined)
+                    turret.y = canvas.height - LINE_Y_OFFSET + 50;
+                if (turret.x === null || turret.x === undefined)
+                    turret.x = canvas.width - 150;
 
-                // Find closest enemy
+                // Find the closest enemy within range
                 let closestEnemy = null;
                 let closestDistance = Infinity;
                 enemies.current.forEach(enemy => {
@@ -764,14 +849,15 @@ const useGameEngine = (canvasRef, gameDuration) => {
                     }
                 });
 
-                // Update turret targeting and firing
+                // Target and shoot
                 turret.targetEnemy = closestEnemy;
                 if (turret.targetEnemy) {
-                    turret.angle = Math.atan2(
-                        turret.targetEnemy.y - turret.y,
-                        turret.targetEnemy.x - turret.x
-                    );
+                    // Aim directly at the enemy center
+                    const dx = turret.targetEnemy.x - turret.x;
+                    const dy = turret.targetEnemy.y - turret.y;
+                    turret.angle = Math.atan2(dy, dx);
 
+                    // Fire bullet
                     if (Date.now() - turret.lastFireTime > TURRET_CONFIG.fireRate) {
                         bullets.current.push({
                             x: turret.x + Math.cos(turret.angle) * TURRET_CONFIG.barrelLength,
@@ -790,6 +876,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
                 }
             });
         };
+
 
         const updateDrones = () => {
             // Maintain correct number of drones

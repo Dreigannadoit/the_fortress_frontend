@@ -56,6 +56,10 @@ export default class Enemy {
         this.facingRight = true;
         this.lastPlayerX = 0; // Track player's last X position
 
+        // Flash effect
+        this.isFlashing = false;
+        this.flashStartTime = 0;
+
         // Load sprites
         this.loadSprites(type);
     }
@@ -95,13 +99,14 @@ export default class Enemy {
 
         // Handle burning damage
         this.#updateBurn();
+
     }
 
 
     setSpriteRefs(refs) {
         this.spriteRefs = refs;
     }
-    
+
 
     applyKnockback(force, angle) {
         this.velocity.x += Math.cos(angle) * force;
@@ -159,10 +164,19 @@ export default class Enemy {
         }
     }
 
+    updateFlash() {
+        if (this.isFlashing && Date.now() - this.flashStartTime > 100) {
+            this.isFlashing = false;
+        }
+    }
+
     takeDamage(damage, knockbackForce = 0, angle = 0) {
         this.health -= damage;
+        this.lastHitTime = Date.now();
+        this.isFlashing = true; // Add this line
+        this.flashStartTime = Date.now(); // Add this line
     
-        // ✅ Play hurt sound
+        // Play hurt sound
         const sounds = ENEMY_SOUNDS[this.type] || ENEMY_SOUNDS['normal'];
         if (sounds?.hurt) playSound(sounds.hurt);
     
@@ -173,18 +187,9 @@ export default class Enemy {
             this.velocity.y += Math.sin(angle) * effectiveKnockback;
         }
     
-        // Check if dead
-        if (this.health <= 0) {
-            if (this.damageInterval) clearInterval(this.damageInterval);
-    
-            // ✅ Play death sound
-            if (sounds?.death) playSound(sounds.death);
-    
-            return true; // Enemy killed
-        }
         return false;
     }
-    
+
     applyBurn() {
         if (!this.isBurning) {
             this.isBurning = true;
@@ -209,7 +214,7 @@ export default class Enemy {
             this.frameCount = 0;
             this.currentFrame = (this.currentFrame + 1) % 4;
         }
-    
+
         // Only update facing direction for non-fast enemies
         if (this.type !== 'fast' && Math.abs(this.velocity.x) > 0.1) {
             this.facingRight = this.velocity.x > 0;
@@ -218,31 +223,39 @@ export default class Enemy {
 
     draw(ctx) {
         this.updateAnimation();
-        
+        this.updateFlash(); // Add this line
+
         ctx.save();
+
+        if (this.isFlashing) {
+            ctx.globalCompositeOperation = 'source-atop';
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, this.size, this.size);
+            ctx.globalCompositeOperation = 'source-over'; // reset
+        }
         
         if (this.type === 'fast') {
             // SPECIAL HANDLING FOR FAST ENEMIES - ROTATE TOWARD PLAYER
             const frame = this.spriteRefs?.[this.currentFrame]?.current;
-            
+
             if (frame?.complete) {
                 try {
                     // Move to enemy center point
-                    ctx.translate(this.x + this.size/2, this.y + this.size/2);
-                    
+                    ctx.translate(this.x + this.size / 2, this.y + this.size / 2);
+
                     // Calculate angle to player
                     const angle = Math.atan2(
-                        this.lastPlayerY - (this.y + this.size/2), 
-                        this.lastPlayerX - (this.x + this.size/2)
+                        this.lastPlayerY - (this.y + this.size / 2),
+                        this.lastPlayerX - (this.x + this.size / 2)
                     );
-                    
+
                     // Rotate to face player
                     ctx.rotate(angle);
-                    
+
                     // Draw centered on rotation point
                     ctx.drawImage(
                         frame,
-                        -this.size/2, -this.size/2, 
+                        -this.size / 2, -this.size / 2,
                         this.size, this.size
                     );
                 } catch (e) {
@@ -255,14 +268,14 @@ export default class Enemy {
         } else {
             // STANDARD ENEMY DRAWING (with flip)
             const drawX = this.facingRight ? this.x : this.x + this.size;
-            
+
             if (!this.facingRight) {
                 ctx.translate(drawX, this.y);
                 ctx.scale(-1, 1);
             } else {
                 ctx.translate(this.x, this.y);
             }
-            
+
             const frame = this.spriteRefs?.[this.currentFrame]?.current;
             if (frame?.complete) {
                 try {
@@ -275,12 +288,12 @@ export default class Enemy {
                 this.drawFallback(ctx);
             }
         }
-        
+
         ctx.restore();
-        
+
         // Draw health bar (in original coordinates)
         this.drawHealthBar(ctx);
-        
+
         // Draw burning effect if needed
         if (this.isBurning) {
             this.drawBurningEffect(ctx);

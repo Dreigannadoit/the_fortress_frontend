@@ -299,7 +299,7 @@ class Player {
         // Get current sprite
         const direction = this.isFacingFront ? 'front' : 'back';
         const spriteKey = `${direction}_${this.animationFrame}`;
-        const playerImage = playerSpriteRefs[spriteKey]?.current;
+        let playerImage = playerSpriteRefs[spriteKey]?.current;
 
         // console.log('Attempting to draw:', spriteKey, 'exists:', !!playerImage);
 

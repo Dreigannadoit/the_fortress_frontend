@@ -23,7 +23,7 @@ export const TURRET_CONFIG = {
     size: 90,           // Base diameter
     barrelLength: 60,   // Length of the barrel
     bulletSize: 6,      // Size of bullets
-    bulletSpeed: 10,    // Speed of bullets
+    bulletSpeed: 40,    // Speed of bullets
     damage: 15,         // Damage per hit
     fireRate: 1000,     // Milliseconds between shots
     range: getScaledValue(1000),         // Targeting range

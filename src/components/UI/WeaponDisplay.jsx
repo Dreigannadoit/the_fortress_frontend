@@ -29,7 +29,13 @@ const WeaponDisplay = ({
                 <p className={`${currentWeapon.name === 'shotgun' ? "active" : ""}`}>2</p>
                 <p className={`${currentWeapon.name === 'machinegun' ? "active" : ""}`}>3</p>
             </div>
-            <h3>Weapon: {currentWeapon.name}</h3>
+            <h3>
+                Weapon: {`${
+                    currentWeapon.name === 'pistol' ? "Slingshot" : 
+                    currentWeapon.name === 'shotgun' ? "Wizard Wand" :
+                    currentWeapon.name === 'machinegun' ? "Rock Spell" : ""
+                }`}
+            </h3>
             <p>Ammo: {currentAmmo} / {currentWeapon.maxAmmo}</p>
             <p>{isReloading ? `Reloading... ${Math.ceil(reloadTime)}mas` : "Ready to fire"}</p>
             <p>Player Health: {playerHealth}</p>
