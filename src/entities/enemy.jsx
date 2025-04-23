@@ -228,36 +228,22 @@ export default class Enemy {
         ctx.save();
 
         if (this.isFlashing) {
-            ctx.globalCompositeOperation = 'source-atop';
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-            ctx.fillRect(0, 0, this.size, this.size);
-            ctx.globalCompositeOperation = 'source-over'; // reset
+            ctx.filter = 'hue-rotate(0deg) saturate(3)';
+            ctx.opacity = 0.5;
         }
-        
-        if (this.type === 'fast') {
-            // SPECIAL HANDLING FOR FAST ENEMIES - ROTATE TOWARD PLAYER
-            const frame = this.spriteRefs?.[this.currentFrame]?.current;
 
+        if (this.type === 'fast') {
+            const frame = this.spriteRefs?.[this.currentFrame]?.current;
+        
             if (frame?.complete) {
                 try {
-                    // Move to enemy center point
                     ctx.translate(this.x + this.size / 2, this.y + this.size / 2);
-
-                    // Calculate angle to player
                     const angle = Math.atan2(
                         this.lastPlayerY - (this.y + this.size / 2),
                         this.lastPlayerX - (this.x + this.size / 2)
                     );
-
-                    // Rotate to face player
                     ctx.rotate(angle);
-
-                    // Draw centered on rotation point
-                    ctx.drawImage(
-                        frame,
-                        -this.size / 2, -this.size / 2,
-                        this.size, this.size
-                    );
+                    ctx.drawImage(frame, -this.size / 2, -this.size / 2, this.size, this.size);
                 } catch (e) {
                     console.error('Error drawing rotated fast enemy:', e);
                     this.drawFallback(ctx);
@@ -266,16 +252,14 @@ export default class Enemy {
                 this.drawFallback(ctx);
             }
         } else {
-            // STANDARD ENEMY DRAWING (with flip)
             const drawX = this.facingRight ? this.x : this.x + this.size;
-
             if (!this.facingRight) {
                 ctx.translate(drawX, this.y);
                 ctx.scale(-1, 1);
             } else {
                 ctx.translate(this.x, this.y);
             }
-
+        
             const frame = this.spriteRefs?.[this.currentFrame]?.current;
             if (frame?.complete) {
                 try {
@@ -288,7 +272,7 @@ export default class Enemy {
                 this.drawFallback(ctx);
             }
         }
-
+        ctx.filter = 'none'; 
         ctx.restore();
 
         // Draw health bar (in original coordinates)

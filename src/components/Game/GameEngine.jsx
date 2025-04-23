@@ -7,7 +7,7 @@ import { TURRET_CONFIG, ENEMY_SPAWN_COUNT, ENEMY_SPAWN_INTERVAL, BASE_DAMAGE_INT
 import calculateDistance from "../../utils/calculateDistance";
 import { getRandomEnemyType } from "../../utils/getRandomEnemyType";
 import { Item } from "../../entities/Item";
-import { background_gameplay_1, background_gameplay_2, tree_0, tree_1, tree_2 } from "../../assets";
+import { background_gameplay_1, background_gameplay_2, floor, fortress, tree_0, tree_1, tree_2 } from "../../assets";
 
 
 const useGameEngine = (canvasRef, gameDuration) => {
@@ -47,7 +47,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
         endTime: 0,
         intensity: 0
     });
-    
+
 
     const [maxDrones, setMaxDrones] = useState(1);
     const [isMusicPlaying, setIsMusicPlaying] = useState(false);
@@ -70,6 +70,15 @@ const useGameEngine = (canvasRef, gameDuration) => {
         back_3: useRef(null),
     };
 
+    const screenShakeRef = useRef({
+        offsetX: 0,
+        offsetY: 0,
+        active: false,
+        endTime: 0,
+        intensity: 0,
+        duration: 0
+    });
+
     const drones = useRef([]);
     const turrets = useRef([
         { x: 150, y: null, angle: 0, targetEnemy: null, lastFireTime: 0 },
@@ -90,6 +99,8 @@ const useGameEngine = (canvasRef, gameDuration) => {
     const keys = useRef({ w: false, a: false, s: false, d: false, spacebar: false });
     const mouseDown = useRef(false);
     const passiveSkillsRef = useRef(passiveSkills);
+    const bottomSpriteImage = useRef(null);
+    const backgroundImageRef = useRef(null);
 
     // Initialize player
     useEffect(() => {
@@ -450,14 +461,63 @@ const useGameEngine = (canvasRef, gameDuration) => {
         if (keys.current.hasOwnProperty(key)) keys.current[key] = false;
     }, []);
 
-    const applyScreenShake = useCallback((intensity = 5, duration = 100) => {
-        setScreenShake({
+    const applyScreenShake = useCallback((intensity = 5, duration = 200) => {
+        const newShake = {
             offsetX: 0,
             offsetY: 0,
             active: true,
             endTime: Date.now() + duration,
-            intensity
-        });
+            intensity,
+            duration
+        };
+        screenShakeRef.current = newShake;
+        setScreenShake(newShake);
+    }, []);
+
+    const updateScreenShake = useCallback(() => {
+        const shake = screenShakeRef.current;
+
+        if (!shake.active || Date.now() > shake.endTime) {
+            if (shake.active) {
+                const newShake = { ...shake, active: false, offsetX: 0, offsetY: 0 };
+                screenShakeRef.current = newShake;
+                setScreenShake(newShake);
+            }
+            return;
+        }
+
+        const timeRemaining = shake.endTime - Date.now();
+        const progress = timeRemaining / shake.duration;
+        const decay = progress;
+        const intensity = shake.intensity * decay;
+
+        // Update the ref immediately
+        screenShakeRef.current.offsetX = (Math.random() * 2 - 1) * intensity * 2;
+        screenShakeRef.current.offsetY = (Math.random() * 2 - 1) * intensity * 2;
+
+        // Optionally update state less frequently for React components
+        if (Date.now() % 3 === 0) { // Only update state every 3 frames
+            setScreenShake({
+                ...screenShakeRef.current,
+                offsetX: screenShakeRef.current.offsetX,
+                offsetY: screenShakeRef.current.offsetY
+            });
+        }
+    }, []);
+
+    useEffect(() => {
+        const loadBackground = () => {
+            backgroundImageRef.current = new Image();
+            backgroundImageRef.current.src = floor;
+            backgroundImageRef.current.onload = () => {
+                // Image loaded, you might want to trigger a redraw
+            };
+            backgroundImageRef.current.onerror = () => {
+                console.error('Failed to load background image');
+            };
+        };
+
+        loadBackground();
     }, []);
 
     // Game systems
@@ -589,29 +649,39 @@ const useGameEngine = (canvasRef, gameDuration) => {
                 animationFrameId = requestAnimationFrame(updateGame);
                 return;
             }
-        
+
             // Update screen shake first
             updateScreenShake();
-        
+            const { offsetX, offsetY } = screenShakeRef.current;
+
             // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
+            ctx.clearRect(
+                -Math.abs(offsetX),
+                -Math.abs(offsetY),
+                canvas.width + Math.abs(offsetX) * 2,
+                canvas.height + Math.abs(offsetY) * 2
+            );
+
             // Save context before applying transformations
             ctx.save();
-        
+
             // Apply screen shake if active
-            if (screenShake.active) {
-                ctx.translate(screenShake.offsetX, screenShake.offsetY);
+            if (screenShakeRef.current.active) {
+                ctx.translate(offsetX, offsetY);
             }
-        
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Arial';
+            ctx.fillText(`Shake: X:${screenShake.offsetX.toFixed(1)} Y:${screenShake.offsetY.toFixed(1)}`, 500, 30);
+
             // Update and draw all game objects here...
+            drawBackground(); 
             updatePlayer();
             updateEnemies();
             updateBullets();
             updateTurrets();
             updateDrones();
             updateItems();
-        
+
             drawEnvironment();
             drawItems();
             drawPlayer();
@@ -619,34 +689,16 @@ const useGameEngine = (canvasRef, gameDuration) => {
             drawBullets();
             drawDrones();
             drawTurrets();
+            drawFortress();
             drawCursor();
-        
+
             // Restore context
             ctx.restore();
-        
+
             checkItemCollisions();
-        
+
             animationFrameId = requestAnimationFrame(updateGame);
         };
-
-        const updateScreenShake = useCallback(() => {
-            if (!screenShake.active || Date.now() > screenShake.endTime) {
-                if (screenShake.active) {
-                    setScreenShake(prev => ({ ...prev, active: false, offsetX: 0, offsetY: 0 }));
-                }
-                return;
-            }
-        
-            const progress = (screenShake.endTime - Date.now()) / (screenShake.endTime - (screenShake.endTime - screenShake.duration));
-            const decay = progress; // Goes from 1 to 0
-            const intensity = screenShake.intensity * decay;
-        
-            setScreenShake(prev => ({
-                ...prev,
-                offsetX: (Math.random() * 2 - 1) * intensity,
-                offsetY: (Math.random() * 2 - 1) * intensity
-            }));
-        }, [screenShake.active, screenShake.endTime, screenShake.intensity, screenShake.duration]);
 
         const updatePlayer = () => {
             const player = playerRef.current;
@@ -746,11 +798,11 @@ const useGameEngine = (canvasRef, gameDuration) => {
                 bullets.current = bullets.current.filter((bullet) => {
                     if (checkCollision(bullet, enemy)) {
                         // Trigger screen shake based on weapon type
-                        const shakeIntensity = 
-                            bullet.weaponType === 'shotgun' ? 15 :
-                            bullet.weaponType === 'pistol' ? 8 :
-                            bullet.weaponType === 'machinegun' ? 5 : 3;
-                        applyScreenShake(shakeIntensity, 200); // More noticeable duration
+                        const shakeIntensity =
+                            bullet.weaponType === 'shotgun' ? 8 :
+                                bullet.weaponType === 'pistol' ? 2 :
+                                    bullet.weaponType === 'machinegun' ? 1 : 1;
+                        applyScreenShake(shakeIntensity, 300);  // More noticeable duration
 
                         const knockbackForce =
                             bullet.weaponType === 'shotgun' ? 8 :
@@ -763,7 +815,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
                             bullet.x - (enemy.x + enemy.size / 2)
                         );
 
-                        
+
                         const enemyKilledByThisHit = enemy.takeDamage(bullet.damage, knockbackForce, angle);
 
                         if (enemyKilledByThisHit) {
@@ -877,7 +929,6 @@ const useGameEngine = (canvasRef, gameDuration) => {
             });
         };
 
-
         const updateDrones = () => {
             // Maintain correct number of drones
             while (drones.current.length < maxDrones) {
@@ -901,10 +952,27 @@ const useGameEngine = (canvasRef, gameDuration) => {
             });
         };
 
+        const drawBackground = () => {
+            if (!backgroundImageRef.current || !backgroundImageRef.current.complete) return;
+            
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Draw the background image to cover the entire canvas
+            ctx.drawImage(
+              backgroundImageRef.current,
+              0, 0,                          // Source X, Y
+              backgroundImageRef.current.width, backgroundImageRef.current.height, // Source width, height
+              0, 0,                          // Destination X, Y
+              canvas.width, canvas.height     // Destination width, height
+            );
+          };
+
         const drawItems = () => {
             items.current.forEach(item => item.draw(ctx));
         };
-
 
         const drawPlayer = () => {
             const player = playerRef.current;
@@ -920,7 +988,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
                 currentSprite = playerSpriteRefs[defaultWeapon]?.current;
             }
 
-            console.log("Current player weapon:", player.currentWeaponType);
+            // console.log("Current player weapon:", player.currentWeaponType);
 
             player.draw(ctx, mousePos.current, playerSpriteRefs);
         };
@@ -1095,8 +1163,6 @@ const useGameEngine = (canvasRef, gameDuration) => {
             });
         };
 
-
-
         const drawDrones = () => {
             drones.current.forEach(drone => drone.draw(ctx));
         };
@@ -1104,12 +1170,12 @@ const useGameEngine = (canvasRef, gameDuration) => {
         const drawEnvironment = () => {
             const lineY = canvas.height - LINE_Y_OFFSET;
             const spawnZoneWidth = canvas.width * 0.1;
-            const playableWidth = canvas.width - (2 * spawnZoneWidth); // Central 80% of canvas
+            const playableWidth = canvas.width - (2 * spawnZoneWidth);
 
-            // Draw spawn zones with semi-transparent background
+            // Draw spawn zones
             ctx.fillStyle = 'rgba(128, 128, 128, 0.2)';
-            ctx.fillRect(0, 0, spawnZoneWidth, canvas.height); // Left
-            ctx.fillRect(canvas.width - spawnZoneWidth, 0, spawnZoneWidth, canvas.height); // Right
+            ctx.fillRect(0, 0, spawnZoneWidth, canvas.height);
+            ctx.fillRect(canvas.width - spawnZoneWidth, 0, spawnZoneWidth, canvas.height);
 
             // Draw defense line
             ctx.beginPath();
@@ -1118,30 +1184,28 @@ const useGameEngine = (canvasRef, gameDuration) => {
             ctx.strokeStyle = 'blue';
             ctx.lineWidth = 4;
             ctx.stroke();
-
-            const tree_0 = new Image();
-            tree_0.src = tree_0;
-
-            const tree_1 = new Image();
-            tree_1.src = tree_1;
-
-            const tree_2 = new Image();
-            tree_2.src = tree_2;
-
-            // Draw trees (example with 3 trees)
-            const treeAssets = [tree_0, tree_1, tree_2]; // Your tree image assets
-            const treeCount = 3;
-            const minTreeX = spawnZoneWidth; // Start after left spawn zone
-            const maxTreeX = canvas.width - spawnZoneWidth; // End before right spawn zone
-
-            for (let i = 0; i < treeCount; i++) {
-                // Random position in playable area (excluding spawn zones)
-                const treeX = minTreeX + Math.random() * (maxTreeX - minTreeX - 50); // 50 is approximate tree width
-                const treeY = lineY - treeAssets[i].height; // Place trees on the ground line
-
-                ctx.drawImage(treeAssets[i], treeX, treeY);
-            }
         };
+
+        const drawFortress = () => {
+            // Draw bottom sprite (full width, 120px height)
+            const bottomSpriteHeight = 150;
+            const bottomSpriteY = canvas.height - bottomSpriteHeight;
+
+            // Create image if it doesn't exist
+            if (!bottomSpriteImage.current) {
+                bottomSpriteImage.current = new Image();
+                bottomSpriteImage.current.src = fortress;
+            }
+
+            // Draw when image is loaded
+            if (bottomSpriteImage.current.complete) {
+                ctx.drawImage(
+                    bottomSpriteImage.current,
+                    0, bottomSpriteY,
+                    canvas.width, bottomSpriteHeight
+                );
+            }
+        }
 
         // Helper functions
         const checkCollision = (bullet, enemy) => {
@@ -1245,6 +1309,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
         cleanupGame,
         toggleMusic,
         setVolume,
+        applyScreenShake
     };
 };
 

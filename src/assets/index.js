@@ -12,6 +12,8 @@ import playerSprite_pistol from "./player_ref/pistol.png"
 import playerSprite_machine from "./player_ref/machine_gun.png"
 import playerSprite_shotgun from "./player_ref/shutgun.png"
 
+import floor from "./floor.png"
+
 // Audio files for the game
 import slingshotSound from "./sound/sfx/slingshot.mp3"
 import wizardWandSound from "./sound/sfx/wizard_wand.mp3"
@@ -38,6 +40,7 @@ export {
     tree_0,
     tree_1,
     tree_2,
+    floor,
 
     // Audio files
     slingshotSound,
