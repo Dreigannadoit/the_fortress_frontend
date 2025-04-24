@@ -799,10 +799,10 @@ const useGameEngine = (canvasRef, gameDuration) => {
                     if (checkCollision(bullet, enemy)) {
                         // Trigger screen shake based on weapon type
                         const shakeIntensity =
-                            bullet.weaponType === 'shotgun' ? 8 :
-                                bullet.weaponType === 'pistol' ? 2 :
-                                    bullet.weaponType === 'machinegun' ? 1 : 1;
-                        applyScreenShake(shakeIntensity, 300);  // More noticeable duration
+                            bullet.weaponType === 'shotgun' ? 4 :
+                                bullet.weaponType === 'pistol' ? 1.5 :
+                                    bullet.weaponType === 'machinegun' ? 1 : 0;
+                        applyScreenShake(shakeIntensity, 500);  
 
                         const knockbackForce =
                             bullet.weaponType === 'shotgun' ? 8 :

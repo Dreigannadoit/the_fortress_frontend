@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
+import { fortress, playerSprite, playerSprite_machine, playerSprite_pistol, playerSprite_shotgun, trees } from '../../assets';
 import useCanvas from '../../hooks/useCanvas';
+import { useImage } from '../../hooks/useImage';
 import GameOver from '../UI/GameOver';
 import PassiveSkillCheckboxes from '../UI/PassiveSkillCheckboxes';
 import WeaponDisplay from '../UI/WeaponDisplay';
@@ -48,7 +50,6 @@ const Game = () => {
         musicVolume,
         toggleMusic,
         setVolume,
-        applyScreenShake,
 
         // Refs
         canvasRef: engineCanvasRef,
@@ -61,8 +62,6 @@ const Game = () => {
             {win && <YouWin score={score} onRestart={handleRestart} />}
             {gameOver && <GameOver score={score} onRestart={handleRestart} />}
 
-            {/* <button onClick={() => applyScreenShake(10, 500)}>Test Shake</button> */}
-            
             {isPaused && (
                 <div className="pause-overlay">
                     <h2>Game Paused</h2>
@@ -90,7 +89,7 @@ const Game = () => {
 
             <canvas ref={canvasRef} style={{ display: 'block' }} />
 
-            {/* <div className='fortress' /> */}
+            <div className='fortress' />
 
             <PassiveSkillCheckboxes
                 skills={passiveSkills}
