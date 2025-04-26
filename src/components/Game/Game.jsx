@@ -1,7 +1,4 @@
-import { useEffect, useRef } from 'react';
-import { fortress, playerSprite, playerSprite_machine, playerSprite_pistol, playerSprite_shotgun, trees } from '../../assets';
 import useCanvas from '../../hooks/useCanvas';
-import { useImage } from '../../hooks/useImage';
 import GameOver from '../UI/GameOver';
 import PassiveSkillCheckboxes from '../UI/PassiveSkillCheckboxes';
 import WeaponDisplay from '../UI/WeaponDisplay';
