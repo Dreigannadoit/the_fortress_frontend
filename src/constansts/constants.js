@@ -40,7 +40,7 @@ export const weapons = {
         name: 'pistol', // slingshot
         fireRate: 200,
         damage: 15,
-        range: getScaledValue(600), // Use vmin
+        range: getScaledValue(1000), // Use vmin
         bulletSpeed: 12,        // px/frame
         bulletSize: getScaledValue(15), // Use vmin
         maxAmmo: 15,

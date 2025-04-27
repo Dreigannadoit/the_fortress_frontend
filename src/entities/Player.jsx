@@ -296,6 +296,8 @@ class Player {
             this.animationFrame = 0; // Reset to idle frame
         }
 
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
         // Get current sprite
         const direction = this.isFacingFront ? 'front' : 'back';
         const spriteKey = `${direction}_${this.animationFrame}`;

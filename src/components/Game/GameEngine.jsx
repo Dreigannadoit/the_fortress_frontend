@@ -10,7 +10,7 @@ import { Item } from "../../entities/Item";
 import { background_gameplay_1, background_gameplay_2, floor, fortress, tree_0, tree_1, tree_2 } from "../../assets";
 
 
-const useGameEngine = (canvasRef, gameDuration) => {
+const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
     const gunOffset = 24;
 
     // Game state
@@ -22,7 +22,6 @@ const useGameEngine = (canvasRef, gameDuration) => {
     const [timeElapsed, setTimeElapsed] = useState(0);
     const [enemyScalingFactor, setEnemyScalingFactor] = useState(1);
     const [currentEnemySpawnCount, setCurrentEnemySpawnCount] = useState(ENEMY_SPAWN_COUNT);
-
 
     // Player state
     const [playerHealth, setPlayerHealth] = useState(100);
@@ -55,6 +54,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
 
 
     // Refs for game objects
+    const lastConvertedScore = useRef(0);
     const currentTrackIndex = useRef(0);
     const audioRef = useRef(null);
 
@@ -167,6 +167,26 @@ const useGameEngine = (canvasRef, gameDuration) => {
         });
     }, []);
 
+
+    // Update the enemy kill reward to modify playerData directly:
+    const handleEnemyKilled = useCallback((enemy) => {
+        setScore(prev => {
+            const newScore = prev + enemy.score;
+            // Calculate currency based on total score, not just enemy.score
+            const currencyToAdd = Math.floor(newScore / 2) - Math.floor(lastConvertedScore.current / 2);
+            
+            if (currencyToAdd > 0) {
+                setPlayerData(prevData => ({
+                    ...prevData,
+                    currency: prevData.currency + currencyToAdd
+                }));
+                lastConvertedScore.current = newScore;
+            }
+            
+            return newScore;
+        });
+    }, [setPlayerData]);
+    
     const spawnItem = useCallback(() => {
         if (Math.random() < ITEM_SPAWN_CHANCE) {
             const canvas = canvasRef.current;
@@ -352,6 +372,14 @@ const useGameEngine = (canvasRef, gameDuration) => {
     }, []);
 
     const handleRestart = useCallback(() => {
+        // Clear all enemy damage intervals first
+        enemies.current.forEach(enemy => {
+            if (enemy.damageInterval) {
+                clearInterval(enemy.damageInterval);
+                enemy.damageInterval = null;
+            }
+        });
+
         // Reset all state variables
         setWin(false);
         setGameOver(false);
@@ -359,7 +387,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
         setScore(0);
         setTimeElapsed(0);
         setEnemyScalingFactor(1);
-        setCurrentEnemySpawnCount(ENEMY_SPAWN_COUNT); // Reset to initial value
+        setCurrentEnemySpawnCount(ENEMY_SPAWN_COUNT);
         items.current = [];
         setItemSpawnTimer(0);
 
@@ -386,6 +414,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
         keys.current = { w: false, a: false, s: false, d: false, spacebar: false };
         mouseDown.current = false;
         mousePos.current = { x: 0, y: 0 };
+        lastConvertedScore.current = 0;
     }, [INITIAL_BASE_HEALTH]);
 
     const cleanupGame = useCallback(() => {
@@ -674,7 +703,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
             ctx.fillText(`Shake: X:${screenShake.offsetX.toFixed(1)} Y:${screenShake.offsetY.toFixed(1)}`, 500, 30);
 
             // Update and draw all game objects here...
-            drawBackground(); 
+            drawBackground();
             updatePlayer();
             updateEnemies();
             updateBullets();
@@ -779,7 +808,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
                         enemy.isStopped = true;
                         if (!enemy.damageInterval && baseHealth > 0 && !isPaused) {
                             enemy.damageInterval = setInterval(() => {
-                                if (win || gameOver || isPaused) {
+                                if (win || gameOver || isPaused || !enemies.current.includes(enemy)) {
                                     clearInterval(enemy.damageInterval);
                                     enemy.damageInterval = null;
                                     return;
@@ -801,8 +830,8 @@ const useGameEngine = (canvasRef, gameDuration) => {
                         const shakeIntensity =
                             bullet.weaponType === 'shotgun' ? 4 :
                                 bullet.weaponType === 'pistol' ? 1.5 :
-                                    bullet.weaponType === 'machinegun' ? 1 : 0;
-                        applyScreenShake(shakeIntensity, 500);  
+                                    bullet.weaponType === 'machinegun' ? 2 : 1;
+                        applyScreenShake(shakeIntensity, 500);
 
                         const knockbackForce =
                             bullet.weaponType === 'shotgun' ? 8 :
@@ -821,6 +850,8 @@ const useGameEngine = (canvasRef, gameDuration) => {
                         if (enemyKilledByThisHit) {
                             hitByBullet = true;
                             setScore(prev => prev + enemy.score);
+                            handleEnemyKilled(enemy);
+                            setPlayerCurrency(prev => prev + Math.floor(enemy.score / 2));
 
                             // Life steal effect
                             const damageDealt = Math.min(bullet.damage, enemy.health);
@@ -954,21 +985,21 @@ const useGameEngine = (canvasRef, gameDuration) => {
 
         const drawBackground = () => {
             if (!backgroundImageRef.current || !backgroundImageRef.current.complete) return;
-            
+
             const canvas = canvasRef.current;
             if (!canvas) return;
-            
+
             const ctx = canvas.getContext('2d');
-            
+
             // Draw the background image to cover the entire canvas
             ctx.drawImage(
-              backgroundImageRef.current,
-              0, 0,                          // Source X, Y
-              backgroundImageRef.current.width, backgroundImageRef.current.height, // Source width, height
-              0, 0,                          // Destination X, Y
-              canvas.width, canvas.height     // Destination width, height
+                backgroundImageRef.current,
+                0, 0,                          // Source X, Y
+                backgroundImageRef.current.width, backgroundImageRef.current.height, // Source width, height
+                0, 0,                          // Destination X, Y
+                canvas.width, canvas.height     // Destination width, height
             );
-          };
+        };
 
         const drawItems = () => {
             items.current.forEach(item => item.draw(ctx));
@@ -1181,7 +1212,7 @@ const useGameEngine = (canvasRef, gameDuration) => {
             ctx.beginPath();
             ctx.moveTo(0, lineY);
             ctx.lineTo(canvas.width, lineY);
-            ctx.strokeStyle = 'blue';
+            ctx.strokeStyle = 'grey';
             ctx.lineWidth = 4;
             ctx.stroke();
         };
@@ -1251,6 +1282,15 @@ const useGameEngine = (canvasRef, gameDuration) => {
         return () => {
             clearInterval(enemySpawnIntervalId);
             cancelAnimationFrame(animationFrameId);
+
+            // Clear all enemy damage intervals
+            enemies.current.forEach(enemy => {
+                if (enemy.damageInterval) {
+                    clearInterval(enemy.damageInterval);
+                    enemy.damageInterval = null;
+                }
+            });
+
             if (isPaused) {
 
                 window.removeEventListener('mousemove', handleMouseMove);

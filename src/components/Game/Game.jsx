@@ -7,7 +7,7 @@ import useGameEngine from './GameEngine';
 import minutesToMilliseconds from '../../utils/MinutesToMilliseconds';
 import { useNavigate } from 'react-router-dom';
 
-const Game = () => {
+const Game = ({ playerData, setPlayerData, setGameActive }) => {
     const navigate = useNavigate();
     const canvasRef = useCanvas();
 
@@ -28,6 +28,8 @@ const Game = () => {
         reloadTime,
         passiveSkills,
         maxDrones,
+        playerCurrency,
+        inStore,
 
         // Methods
         handleRestart,
@@ -50,14 +52,20 @@ const Game = () => {
 
         // Refs
         canvasRef: engineCanvasRef,
-    } = useGameEngine(canvasRef, gameDuration);
+    } = useGameEngine(canvasRef, gameDuration, playerData, setPlayerData);
 
 
+    const handleReturnToMenu = () => {
+        setIsPaused(false);
+        setGameActive(false);
+        cleanupGame();
+        navigate('/');
+    };
 
     return (
         <section className="game-container">
-            {win && <YouWin score={score} onRestart={handleRestart} />}
-            {gameOver && <GameOver score={score} onRestart={handleRestart} />}
+            {win && <YouWin score={score} onRestart={handleRestart} handleReturnToMenu={handleReturnToMenu} />}
+            {gameOver && <GameOver score={score} onRestart={handleRestart} handleReturnToMenu={handleReturnToMenu} />}
 
             {isPaused && (
                 <div className="pause-overlay">
@@ -70,11 +78,7 @@ const Game = () => {
                             Resume Game
                         </button>
                         <button
-                            onClick={() => {
-                                setIsPaused(false);
-                                cleanupGame();
-                                navigate('/');
-                            }}
+                            onClick={handleReturnToMenu}
                             className="pause-menu-button menu-button"
                         >
                             Return to Main Menu
@@ -83,6 +87,20 @@ const Game = () => {
                     <p>Press ESC to toggle pause</p>
                 </div>
             )}
+
+            <div className="currency-display" style={{
+                position: 'fixed',
+                top: '20px',
+                right: '20px',
+                background: 'rgba(0, 0, 0, 0.7)',
+                padding: '10px 15px',
+                borderRadius: '30px',
+                color: 'white',
+                fontSize: '16px',
+                zIndex: 100
+            }}>
+                Currency: {playerData.currency}
+            </div>
 
             <canvas ref={canvasRef} style={{ display: 'block' }} />
 
@@ -108,6 +126,26 @@ const Game = () => {
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
                 zIndex: 100
             }}>
+                <button
+                    onClick={() => setInStore(true)}
+                    className="store-button"
+                    style={{
+                        position: 'fixed',
+                        bottom: '20px',
+                        right: '160px',
+                        background: 'rgba(0, 0, 0, 0.7)',
+                        color: 'white',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        padding: '10px 15px',
+                        borderRadius: '30px',
+                        cursor: 'pointer',
+                        backdropFilter: 'blur(5px)',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        zIndex: 100
+                    }}
+                >
+                    Open Store
+                </button>
                 <button
                     onClick={toggleMusic}
                     style={{

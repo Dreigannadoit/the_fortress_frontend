@@ -1,4 +1,9 @@
 // Images and sprites for the game
+
+import backgroundStart from "./StartMenu/background.png"
+import foregroundStart from "./StartMenu/foreground.png"
+import border from "./StartMenu/border.png"
+
 import playerSprite from "./player.png"
 import fortress from "./fortress.svg"
 
@@ -31,6 +36,9 @@ import background_gameplay_2 from "./sound/sfx/background_gameplay_2.mp3"
 
 export {
     // Images and sprites for the game
+    backgroundStart,
+    foregroundStart,
+    border,
     playerSprite,
     playerSprite_pistol,
     playerSprite_machine,
