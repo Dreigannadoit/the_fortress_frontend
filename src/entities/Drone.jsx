@@ -242,7 +242,6 @@ export default class Drone {
         ctx.restore();
     
         // --- Optional: Light twinkle/sparkle ---
-        /*
         ctx.save();
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 1;
@@ -253,11 +252,10 @@ export default class Drone {
         ctx.lineTo(this.x, this.y + 2);
         ctx.stroke();
         ctx.restore();
-        */
     
         // --- Debug drawing (still available if needed) ---
         if (this.targetEnemy) {
-            ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+            ctx.strokeStyle = 'rgba(0, 225, 255, 0.5)';
             ctx.beginPath();
             ctx.moveTo(this.x, this.y);
             ctx.lineTo((this.targetEnemy.x + 10), (this.targetEnemy.y + 10));

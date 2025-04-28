@@ -11,7 +11,7 @@ const Game = ({ playerData, setPlayerData, setGameActive }) => {
     const navigate = useNavigate();
     const canvasRef = useCanvas();
 
-    const gameDuration = minutesToMilliseconds(1.6);
+    const gameDuration = minutesToMilliseconds(2);
 
     const {
         // State
@@ -54,6 +54,10 @@ const Game = ({ playerData, setPlayerData, setGameActive }) => {
         canvasRef: engineCanvasRef,
     } = useGameEngine(canvasRef, gameDuration, playerData, setPlayerData);
 
+    const handleReplayOnPause = () => {
+        setIsPaused(false);
+        handleRestart()
+    }
 
     const handleReturnToMenu = () => {
         setIsPaused(false);
@@ -73,9 +77,15 @@ const Game = ({ playerData, setPlayerData, setGameActive }) => {
                     <div className="pause-menu-buttons">
                         <button
                             onClick={() => setIsPaused(false)}
-                            className="pause-menu-button resume-button"
+                            className="pause-menu-button resume-button menu-button"
                         >
                             Resume Game
+                        </button>
+                        <button
+                            onClick={handleReplayOnPause}
+                            className="replay-menu-button menu-button"
+                        >
+                            Restart Level
                         </button>
                         <button
                             onClick={handleReturnToMenu}
@@ -126,26 +136,6 @@ const Game = ({ playerData, setPlayerData, setGameActive }) => {
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
                 zIndex: 100
             }}>
-                <button
-                    onClick={() => setInStore(true)}
-                    className="store-button"
-                    style={{
-                        position: 'fixed',
-                        bottom: '20px',
-                        right: '160px',
-                        background: 'rgba(0, 0, 0, 0.7)',
-                        color: 'white',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        padding: '10px 15px',
-                        borderRadius: '30px',
-                        cursor: 'pointer',
-                        backdropFilter: 'blur(5px)',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                        zIndex: 100
-                    }}
-                >
-                    Open Store
-                </button>
                 <button
                     onClick={toggleMusic}
                     style={{

@@ -8,25 +8,28 @@ const Store = ({ playerData, setPlayerData, setGameActive }) => {
     // Store inventory
     const storeItems = {
         weapons: [
-            { id: 'shotgun', name: 'Wizard Wand', price: 500, description: 'Wide spread, high damage at close range', category: 'weapons' },
-            { id: 'machinegun', name: 'Rock Spell', price: 800, description: 'Rapid fire with moderate damage', category: 'weapons' }
+            { id: 'shotgun', available: true, name: 'Wizard Wand', price: 500, description: 'Wide spread, high damage at close range', category: 'weapons' },
+            { id: 'machinegun', available: true, name: 'Rock Spell', price: 800, description: 'Rapid fire with moderate damage', category: 'weapons' }
         ],
         turrets: [
-            { id: 'basic_turret', name: 'Basic Turret', price: 1000, description: 'Automatic targeting with moderate damage', category: 'turrets' },
-            { id: 'sniper_turret', name: 'Sniper Turret', price: 1500, description: 'High damage, low rate of fire', category: 'turrets' }
+            { id: 'basic_turret', available: true, name: 'Basic Turret', price: 1000, description: 'Automatic targeting with moderate damage', category: 'turrets' },
+            { id: 'sniper_turret', available: false, name: 'Sniper Turret', price: 1500, description: 'High damage, low rate of fire', category: 'turrets' }
         ],
         orbs: [
-            { id: 'defense_orb', name: 'Defense Orb', price: 600, description: 'Protects player from incoming damage', category: 'orbs' },
-            { id: 'attack_orb', name: 'Attack Orb', price: 700, description: 'Attacks nearby enemies', category: 'orbs' },
-            { id: 'healing_orb', name: 'Healing Orb', price: 800, description: 'Periodically heals player', category: 'orbs' },
-            { id: 'support_orb', name: 'Support Orb', price: 900, description: 'Boosts player stats', category: 'orbs' }
+            { id: 'defense_orb', available: false, name: 'Defense Orb', price: 600, description: 'Protects player from incoming damage', category: 'orbs' },
+            { id: 'attack_orb', available: true, name: 'Attack Orb', price: 700, description: 'Attacks nearby enemies', category: 'orbs' },
+            { id: 'healing_orb', available: false, name: 'Healing Orb', price: 800, description: 'Periodically heals player', category: 'orbs' },
+            { id: 'support_orb', available: false, name: 'Support Orb', price: 900, description: 'Boosts player stats', category: 'orbs' }
         ],
         skills: [
-            { id: 'recovery', name: 'Recovery', price: 400, description: 'Slowly regenerate health over time', category: 'skills' },
-            { id: 'lifeSteal', name: 'Life Steal', price: 600, description: 'Heal when dealing damage to enemies', category: 'skills' },
-            { id: 'thorns', name: 'Thorns', price: 500, description: 'Reflect some damage back to attackers', category: 'skills' },
-            { id: 'momentum', name: 'Momentum', price: 450, description: 'Move faster the longer you travel in one direction', category: 'skills' },
-            { id: 'fastReload', name: 'Fast Reload', price: 550, description: 'Reduce reload time by 30%', category: 'skills' }
+            { id: 'recovery', available: true, name: 'Recovery', price: 400, description: 'Slowly regenerate health over time', category: 'skills' },
+            { id: 'lifeSteal', available: true, name: 'Life Steal', price: 600, description: 'Heal when dealing damage to enemies', category: 'skills' },
+            { id: 'thorns', available: true, name: 'Thorns', price: 500, description: 'Reflect some damage back to attackers', category: 'skills' },
+            { id: 'momentum', available: true, name: 'Momentum', price: 450, description: 'Move faster the longer you travel in one direction', category: 'skills' },
+            { id: 'fastReload', available: true, name: 'Fast Reload', price: 550, description: 'Reduce reload time by 30%', category: 'skills' }
+        ],
+        ultimates: [
+            { id: 'dragons_breath', available: false, name: 'Dragons Breath', price: 5000, description: 'Call in a dragon to clear a massive amount of enemies at once', category: 'ultimates' }
         ]
     };
 
@@ -45,7 +48,7 @@ const Store = ({ playerData, setPlayerData, setGameActive }) => {
                     [item.category]: [...prev.ownedItems[item.category], item.id]
                 }
             }));
-            
+
             // Play purchase sound or show confirmation
             console.log(`Purchased ${item.name}!`);
         } else {
@@ -55,8 +58,10 @@ const Store = ({ playerData, setPlayerData, setGameActive }) => {
     };
 
     const isItemOwned = (itemId) => {
-        return playerData.ownedItems[selectedCategory].includes(itemId);
-    };
+        const ownedCategory = playerData.ownedItems[selectedCategory];
+        if (!ownedCategory) return false;
+        return ownedCategory.includes(itemId);
+      };
 
     return (
         <div className="store-container">
@@ -94,30 +99,44 @@ const Store = ({ playerData, setPlayerData, setGameActive }) => {
                 >
                     Passive Skills
                 </button>
+                <button
+                    onClick={() => setSelectedCategory('ultimates')}
+                    className={selectedCategory === 'ultimates' ? 'active' : ''}
+                >
+                    Ultimates
+                </button>
             </div>
 
             <div className="store-items">
                 {storeItems[selectedCategory].map(item => (
-                    <div key={item.id} className={`store-item ${isItemOwned(item.id) ? 'owned' : ''}`}>
+                    <div
+                        key={item.id}
+                        className={`store-item ${isItemOwned(item.id) ? 'owned' : ''} ${!item.available ? 'unavailable' : ''}`}
+                        style={{ backgroundColor: !item.available ? 'rgba(255, 0, 0, 0.4)' : '' }} // light transparent red
+                    >
                         <h3>{item.name}</h3>
                         <p>{item.description}</p>
                         <div className="item-footer">
                             <span>Price: {item.price}</span>
-                            {isItemOwned(item.id) ? (
-                                <span className="owned-label">OWNED</span>
+                            {item.available ? (
+                                isItemOwned(item.id) ? (
+                                    <span className="owned-label">OWNED</span>
+                                ) : (
+                                    <button
+                                        onClick={() => handlePurchase(item)}
+                                        disabled={playerData.currency < item.price}
+                                    >
+                                        Buy
+                                    </button>
+                                )
                             ) : (
-                                <button
-                                    onClick={() => handlePurchase(item)}
-                                    // Changed from playerCurrency to playerData.currency
-                                    disabled={playerData.currency < item.price}
-                                >
-                                    Buy
-                                </button>
+                                <span className="coming-soon">Will be added in future updates</span>
                             )}
                         </div>
                     </div>
                 ))}
             </div>
+
         </div>
     );
 };

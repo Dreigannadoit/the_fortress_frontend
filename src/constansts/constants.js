@@ -10,11 +10,13 @@ export const ENEMY_TANK_WEIGHT = 0.05;
 export const BASE_DAMAGE_INTERVAL = 1000; 
 export const LINE_Y_OFFSET = getScaledValue(200);
 export const INITIAL_BASE_HEALTH = 2000;
+
+
 export const HAS_RECOVERY = false;
 export const HAS_LIFE_STEAL = false;
 export const HAS_THORNS = false;
 export const HAS_MOMENTUM = false;
-
+export const HAS_FAST_RELAOD = false;
 
 export const ITEM_SPAWN_INTERVAL = minutesToMilliseconds(0.2); 
 export const ITEM_SPAWN_CHANCE = 0.3; 
@@ -22,14 +24,13 @@ export const ITEM_SPAWN_CHANCE = 0.3;
 export const TURRET_CONFIG = {
     size: 90,           // Base diameter
     barrelLength: 60,   // Length of the barrel
-    bulletSize: 6,      // Size of bullets
-    bulletSpeed: 40,    // Speed of bullets
-    damage: 15,         // Damage per hit
-    fireRate: 1000,     // Milliseconds between shots
+    bulletSize: 6,     
+    bulletSpeed: 40, 
+    damage: 15,     
+    fireRate: 1000,    
     range: getScaledValue(1000),         // Targeting range
-    color: '#555',      // Base color
-    barrelColor: '#666', // Barrel color
-    // Add these new properties:
+    color: '#555',      
+    barrelColor: '#666', 
     highlightColor: '#888',
     shadowColor: '#333',
     muzzleColor: '#222'

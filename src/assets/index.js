@@ -32,6 +32,8 @@ import character_hurt from "./sound/sfx/character_hurt.mp3"
 
 import background_gameplay_1 from "./sound/sfx/background_gameplay_1.mp3"
 import background_gameplay_2 from "./sound/sfx/background_gameplay_2.mp3"
+import menu from "./sound/sfx/menu.mp3"
+import buttons from "./sound/sfx/buttons.mp3"
 
 
 export {
@@ -61,5 +63,7 @@ export {
     normal_death,
     background_gameplay_1,
     background_gameplay_2,
+    menu,
+    buttons
 
 }

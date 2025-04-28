@@ -3,7 +3,7 @@ import { PassiveSkills } from "../../systems/PassiveSkills";
 import Player from "../../entities/Player";
 import Enemy from "../../entities/Enemy";
 import Drone from "../../entities/Drone";
-import { TURRET_CONFIG, ENEMY_SPAWN_COUNT, ENEMY_SPAWN_INTERVAL, BASE_DAMAGE_INTERVAL, INITIAL_BASE_HEALTH, LINE_Y_OFFSET, weapons, ITEM_SPAWN_INTERVAL, ITEM_SPAWN_CHANCE } from "../../constansts/constants";
+import { TURRET_CONFIG, ENEMY_SPAWN_COUNT, ENEMY_SPAWN_INTERVAL, BASE_DAMAGE_INTERVAL, INITIAL_BASE_HEALTH, LINE_Y_OFFSET, weapons, ITEM_SPAWN_INTERVAL, ITEM_SPAWN_CHANCE, HAS_FAST_RELAOD, HAS_MOMENTUM, HAS_THORNS, HAS_LIFE_STEAL, HAS_RECOVERY } from "../../constansts/constants";
 import calculateDistance from "../../utils/calculateDistance";
 import { getRandomEnemyType } from "../../utils/getRandomEnemyType";
 import { Item } from "../../entities/Item";
@@ -20,7 +20,7 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
     const [baseHealth, setBaseHealth] = useState(INITIAL_BASE_HEALTH);
     const [score, setScore] = useState(0);
     const [timeElapsed, setTimeElapsed] = useState(0);
-    const [enemyScalingFactor, setEnemyScalingFactor] = useState(1);
+    const [enemyScalingFactor, setEnemyScalingFactor] = useState(2);
     const [currentEnemySpawnCount, setCurrentEnemySpawnCount] = useState(ENEMY_SPAWN_COUNT);
 
     // Player state
@@ -32,11 +32,11 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
     const [itemSpawnTimer, setItemSpawnTimer] = useState(0);
     const [spritesLoaded, setSpritesLoaded] = useState(false);
     const [passiveSkills, setPassiveSkills] = useState({
-        recovery: false,
-        lifeSteal: false,
-        thorns: false,
-        momentum: false,
-        fastReload: false
+        recovery: HAS_RECOVERY,
+        lifeSteal: HAS_LIFE_STEAL,
+        thorns: HAS_THORNS,
+        momentum: HAS_MOMENTUM,
+        fastReload: HAS_FAST_RELAOD
     });
 
     const [screenShake, setScreenShake] = useState({
@@ -48,7 +48,7 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
     });
 
 
-    const [maxDrones, setMaxDrones] = useState(1);
+    const [maxDrones, setMaxDrones] = useState(6);
     const [isMusicPlaying, setIsMusicPlaying] = useState(false);
     const [musicVolume, setMusicVolume] = useState(0.5); // Default volume (0-1)
 
@@ -174,7 +174,7 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
             const newScore = prev + enemy.score;
             // Calculate currency based on total score, not just enemy.score
             const currencyToAdd = Math.floor(newScore / 2) - Math.floor(lastConvertedScore.current / 2);
-            
+
             if (currencyToAdd > 0) {
                 setPlayerData(prevData => ({
                     ...prevData,
@@ -182,11 +182,11 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
                 }));
                 lastConvertedScore.current = newScore;
             }
-            
+
             return newScore;
         });
     }, [setPlayerData]);
-    
+
     const spawnItem = useCallback(() => {
         if (Math.random() < ITEM_SPAWN_CHANCE) {
             const canvas = canvasRef.current;
@@ -834,7 +834,7 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
                         applyScreenShake(shakeIntensity, 500);
 
                         const knockbackForce =
-                            bullet.weaponType === 'shotgun' ? 8 :
+                            bullet.weaponType === 'shotgun' ? 14 :
                                 bullet.weaponType === 'pistol' ? 3 :
                                     bullet.weaponType === 'machinegun' ? 2 :
                                         bullet.weaponType === 'turret' ? 1 : 0;
@@ -1083,7 +1083,12 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
                 ctx.save();
                 ctx.translate(bullet.x, bullet.y);
                 ctx.rotate(bullet.angle ?? 0);
-                ctx.fillStyle = bullet.weaponType === 'turret' ? '#FFA500' : '#FF0000';
+                ctx.fillStyle =
+                    bullet.weaponType === 'turret' ? '#233027' :
+                        bullet.weaponType === 'shotgun' ? '#d2eb71' :
+                            bullet.weaponType === 'pistol' ? '#523c2a' :
+                                bullet.weaponType === 'machinegun' ? '#232624':
+                                 '#FF0000';
                 ctx.fillRect(-bullet.size / 2, -bullet.size / 2, bullet.size, bullet.size);
                 ctx.restore();
             });
@@ -1135,7 +1140,7 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
                 ctx.fillRect(baseX, baseY, baseSize, baseSize);
 
                 // Thick Outline
-                ctx.lineWidth = 4;
+                ctx.lineWidth = 10;
                 ctx.strokeStyle = '#1a1a1a';
                 ctx.strokeRect(baseX - 1, baseY - 1, baseSize + 2, baseSize + 2); // Slight offset for better pixel effect
 
