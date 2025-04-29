@@ -12,6 +12,7 @@ import { background_gameplay_1, background_gameplay_2, floor, fortress, tree_0, 
 
 const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
     const gunOffset = 24;
+    const INITIAL_PLAYER_HEALTH = 100;
 
     // Game state
     const [win, setWin] = useState(false);
@@ -24,7 +25,7 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
     const [currentEnemySpawnCount, setCurrentEnemySpawnCount] = useState(ENEMY_SPAWN_COUNT);
 
     // Player state
-    const [playerHealth, setPlayerHealth] = useState(100);
+    const [playerHealth, setPlayerHealth] = useState(INITIAL_PLAYER_HEALTH);
     const [currentWeaponInfo, setCurrentWeaponInfo] = useState(weapons.pistol);
     const [currentAmmo, setCurrentAmmo] = useState(weapons.pistol.maxAmmo);
     const [isReloading, setIsReloading] = useState(false);
@@ -32,7 +33,7 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
     const [itemSpawnTimer, setItemSpawnTimer] = useState(0);
     const [spritesLoaded, setSpritesLoaded] = useState(false);
     const [passiveSkills, setPassiveSkills] = useState({
-        recovery: HAS_RECOVERY,
+        recovery: true,
         lifeSteal: HAS_LIFE_STEAL,
         thorns: HAS_THORNS,
         momentum: HAS_MOMENTUM,
@@ -105,7 +106,7 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
     // Initialize player
     useEffect(() => {
         if (playerRef.current === null) {
-            playerRef.current = new Player(window.innerWidth / 2, window.innerHeight / 2);
+            playerRef.current = new Player(window.innerWidth / 2, window.innerHeight / 2, INITIAL_PLAYER_HEALTH);
             setPlayerHealth(playerRef.current.getHealth());
             setCurrentWeaponInfo(playerRef.current.getCurrentWeaponInfo());
             setCurrentAmmo(playerRef.current.getCurrentAmmo());
@@ -167,6 +168,8 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
         });
     }, []);
 
+    const cursorImage = new Image();
+    cursorImage.src = 'src/assets/cursor.png'; 
 
     // Update the enemy kill reward to modify playerData directly:
     const handleEnemyKilled = useCallback((enemy) => {
@@ -1032,49 +1035,43 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
 
         const drawCursor = () => {
             const player = playerRef.current;
-            if (!player || !mousePos.current) return;
-
+            if (!player || !mousePos.current || !cursorImage.complete) return;
+        
             const playerPos = player.getPosition();
             const angle = Math.atan2(mousePos.current.y - playerPos.y, mousePos.current.x - playerPos.x);
-
-            // Calculate where bullets will actually spawn (the "true" aim point)
+        
             const bulletSpawnX = playerPos.x + Math.cos(angle + Math.PI / 2) * gunOffset;
             const bulletSpawnY = playerPos.y + Math.sin(angle + Math.PI / 2) * gunOffset;
-
-            // Calculate vector from bullet spawn to mouse position
+        
             const cursorX = mousePos.current.x + Math.cos(angle + Math.PI / 2) * gunOffset;
             const cursorY = mousePos.current.y + Math.sin(angle + Math.PI / 2) * gunOffset;
-
-            // Draw the custom cursor at the mouse position
+        
             ctx.save();
-
-            // Outer circle (white)
-            ctx.beginPath();
-            ctx.arc(cursorX, cursorY, 10, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(44, 44, 44, 0.2)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            // Inner circle (red)
-            ctx.beginPath();
-            ctx.arc(cursorX, cursorY, 5, 0, Math.PI * 2);
-            ctx.fillStyle = 'red';
-            ctx.fill();
-
-            // Draw line showing the offset correction
+        
+            // Draw offset correction line
             ctx.beginPath();
             ctx.moveTo(bulletSpawnX, bulletSpawnY);
             ctx.lineTo(cursorX, cursorY);
             ctx.strokeStyle = 'rgba(184, 67, 67, 0.5)';
             ctx.lineWidth = 1;
             ctx.stroke();
-
+        
             // Draw small circle at bullet spawn point
             ctx.beginPath();
             ctx.arc(bulletSpawnX, bulletSpawnY, 3, 0, Math.PI * 2);
             ctx.fillStyle = 'yellow';
             ctx.fill();
-
+        
+            ctx.restore(); // End normal drawing context
+        
+            // Start cursor drawing with invert effect
+            ctx.save();
+            ctx.translate(cursorX, cursorY);
+            ctx.globalCompositeOperation = "difference";
+        
+            const size = 32;
+            ctx.drawImage(cursorImage, -size / 2, -size / 2, size, size);
+        
             ctx.restore();
         };
 
@@ -1334,6 +1331,9 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
         passiveSkills,
         maxDrones,
         items: items.current,
+        INITIAL_PLAYER_HEALTH,
+        INITIAL_BASE_HEALTH,
+        
 
         isMusicPlaying,
         musicVolume,

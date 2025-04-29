@@ -1,17 +1,17 @@
 import useCanvas from '../../hooks/useCanvas';
 import GameOver from '../UI/GameOver';
 import PassiveSkillCheckboxes from '../UI/PassiveSkillCheckboxes';
-import WeaponDisplay from '../UI/WeaponDisplay';
 import YouWin from '../UI/YouWin';
 import useGameEngine from './GameEngine';
 import minutesToMilliseconds from '../../utils/MinutesToMilliseconds';
 import { useNavigate } from 'react-router-dom';
+import InGameStats from '../UI/InGameStats';
 
 const Game = ({ playerData, setPlayerData, setGameActive }) => {
     const navigate = useNavigate();
     const canvasRef = useCanvas();
 
-    const gameDuration = minutesToMilliseconds(2);
+    const gameDuration = minutesToMilliseconds(0.5);
 
     const {
         // State
@@ -28,8 +28,8 @@ const Game = ({ playerData, setPlayerData, setGameActive }) => {
         reloadTime,
         passiveSkills,
         maxDrones,
-        playerCurrency,
-        inStore,
+        INITIAL_PLAYER_HEALTH,
+        INITIAL_BASE_HEALTH,
 
         // Methods
         handleRestart,
@@ -114,14 +114,14 @@ const Game = ({ playerData, setPlayerData, setGameActive }) => {
 
             <canvas ref={canvasRef} style={{ display: 'block' }} />
 
-            <div className='fortress' />
+            {/* <div className='fortress' /> */}
 
             <PassiveSkillCheckboxes
                 skills={passiveSkills}
                 toggleSkill={toggleSkill}
             />
 
-            <div className="music-controls" style={{
+            {/* <div className="music-controls" style={{
                 position: 'fixed',
                 bottom: '20px',
                 right: '20px',
@@ -193,15 +193,17 @@ const Game = ({ playerData, setPlayerData, setGameActive }) => {
                 }}>
                     {Math.round(musicVolume * 100)}%
                 </span>
-            </div>
+            </div> */}
 
-            <WeaponDisplay
+            <InGameStats
                 currentWeapon={currentWeaponInfo}
                 currentAmmo={currentAmmo}
                 isReloading={isReloading}
                 reloadTime={reloadTime}
                 playerHealth={playerHealth}
+                playerInitialHealth={INITIAL_PLAYER_HEALTH}
                 baseHealth={baseHealth}
+                baseInitialHealth={INITIAL_BASE_HEALTH}
                 score={score}
                 timeElapsed={timeElapsed}
                 gameDuration={gameDuration}

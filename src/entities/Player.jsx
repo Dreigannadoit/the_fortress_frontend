@@ -6,10 +6,9 @@ import { character_hurt, rockSpellSound, slingshotSound, wizardWandSound } from 
 const PLAYER_RADIUS = 50;
 const PLAYER_SPEED = 4;
 const RECOIL_DECAY = 0.9;
-const INITIAL_PLAYER_HEALTH = 100;
 
 class Player {
-    constructor(initialX, initialY) {
+    constructor(initialX, initialY, INITIAL_PLAYER_HEALTH) {
         this.x = initialX;
         this.y = initialY;
         this.radius = getScaledValue(PLAYER_RADIUS);

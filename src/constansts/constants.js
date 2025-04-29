@@ -55,7 +55,7 @@ export const weapons = {
         fireRate: 900,
         damage: 35,             // Per pellet
         pellets: 8,
-        spread: Math.PI / 12,   // Radians
+        spread: (Math.PI * 4) / 12,   // Radians
         range: getScaledValue(305), // Use vmin
         bulletSpeed: 18,        // px/frame
         bulletSize: getScaledValue(12), // Use vmin

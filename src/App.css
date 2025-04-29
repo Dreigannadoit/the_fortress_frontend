@@ -64,12 +64,14 @@
     flex-direction: column;
     gap: 15px;
 }
-.content-container .top .left> div{
+
+.content-container .top .left>div {
     display: flex;
     flex-direction: row;
     gap: 15px;
 }
-.content-container .top .right{
+
+.content-container .top .right {
     display: flex;
     justify-content: flex-end;
     align-items: flex-start;
@@ -172,43 +174,135 @@ button.menu-button {
     position: relative;
     color: #fff;
     font-size: 18px;
+    background-color: #726e86;
     border: 0;
     padding: 5px 20px 5px 20px;
     box-shadow: 0px 5px black, 0px -5px black, 5px 0px black, -5px 0px black, 0px 10px #00000038, 5px 5px #00000038, -5px 5px #00000038, inset 0px 5px #ffffff36;
     cursor: pointer;
     transition: all 200ms;
 }
+
 button.menu-button:active {
     transform: translateY(5px);
     box-shadow: 0px 5px black, 0px -5px black, 5px 0px black, -5px 0px black, inset 0px 5px #00000038;
 }
 
-button.menu-button:hover{
+button.menu-button:hover {
     background-color: #db8c14;
     transform: scale(1.2);
     margin: 5px 0;
 }
 
-.weapon_display {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 10px 15px;
-    border-radius: 5px;
-    font-size: 18px;
-    pointer-events: none;
-    z-index: 99;
-    font-family: 'Arial, sans-serif';
+.healthbar {
+    width: 90%;
+    position: fixed;
+    top: 15px;
+    left: 50%;
+    transform: translate(-50%, 0%);
+    box-shadow: 0px 5px black, 0px -5px black, 5px 0px black, -5px 0px black, 0px 10px #00000038, 5px 5px #00000038, -5px 5px #00000038, inset 0px 5px #ffffff36;
 }
 
-.weapon_display .active {
-    height: 25px;
-    width: 25px;
-    border-radius: 10px;
-    border: 1px solid white;
+.baseHealth {
+    position: fixed;
+    bottom: 15px;
+    left: 50%;
+    transform: translate(-50%, 0%);
+    width: 50%;
+    box-shadow: 0px 5px black, 0px -5px black, 5px 0px black, -5px 0px black, 0px 10px #00000038, 5px 5px #00000038, -5px 5px #00000038, inset 0px 5px #ffffff36;
+}
+
+.healthbar p,
+.baseHealth p {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.7;
+    color: #000000;
+}
+
+.countdown {
+    position: fixed;
+    top: 40px;
+    left: 50%;
+    transform: translate(-50%, 0%);
+    background: #fff;
+    padding: 5px;
+    box-shadow: 0px 5px black, 0px -5px black, 5px 0px black, -5px 0px black, 0px 10px #00000038, 5px 5px #00000038, -5px 5px #00000038, inset 0px 5px #ffffff36;
+}
+
+.current_weapon_preview {
+    position: fixed;
+    bottom: 15px;
+    left: 15px;
+    transform: translate(0%, 0%);
+    height: 75px;
+    width: 75px;
+    background: #444;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0px 5px black, 0px -5px black, 5px 0px black, -5px 0px black, 0px 10px #00000038, 5px 5px #00000038, -5px 5px #00000038, inset 0px 5px #ffffff36;
+}
+
+.current_weapon_preview img {
+    height: 90%;
+    width: 90%;
+}
+
+.current_weapon_preview_text {
+    position: fixed;
+    bottom: 58px;
+    left: 105px;
+    padding: 5px;
+    transform: translate(0%, 0%);
+    box-shadow: 0px 5px black, 0px -5px black, 5px 0px black, -5px 0px black, 0px 10px #00000038, 5px 5px #00000038, -5px 5px #00000038, inset 0px 5px #ffffff36;
+    background-color: #fdeded;
+}
+
+.current_ammo_text {
+    position: fixed;
+    bottom: 15px;
+    left: 105px;
+    padding: 5px;
+    transform: translate(0%, 0%);
+    box-shadow: 0px 5px black, 0px -5px black, 5px 0px black, -5px 0px black, 0px 10px #00000038, 5px 5px #00000038, -5px 5px #00000038, inset 0px 5px #ffffff36;
+    background-color: #fdeded;
+}
+
+.reloading_display {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 100%;
     text-align: center;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    pointer-events: none;
+    cursor: none;
+    transition: all 500ms ease;
+}
+
+.reloading_display.Relaoding {
+    opacity: 0.5;
+    animation: 500ms blink linear infinite;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.reloading_display p {
+    font-size: 10vh;
+    width: 100%;
 }
 
 .screen {
@@ -218,7 +312,7 @@ button.menu-button:hover{
     width: 100%;
     height: 100%;
     color: white;
-    background: #db8b1465; 
+    background: #db8b1465;
     -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
     display: flex;
@@ -248,6 +342,7 @@ button.menu-button:hover{
         opacity: 1;
         transform: translateY(0);
     }
+
     100% {
         opacity: 0;
         transform: translateY(-20px);

@@ -27,6 +27,11 @@ const StartMenu = ({ playerData, setPlayerData, setGameActive }) => {
         navigate('/store');
     };
 
+    const handleOpenCharacter = () => {
+        setGameActive(false);
+        navigate('/character');
+    };
+
     const handleAuthChange = (e) => {
         const { name, value } = e.target;
         setAuthForm(prev => ({
@@ -196,7 +201,7 @@ const StartMenu = ({ playerData, setPlayerData, setGameActive }) => {
                                 <HoverSoundButton className="store-button" onClick={handleOpenStore}>
                                     Store
                                 </HoverSoundButton>
-                                <HoverSoundButton className="character-button" onClick={handleStartGame}>
+                                <HoverSoundButton className="character-button" onClick={handleOpenCharacter}>
                                     Character
                                 </HoverSoundButton>
                                 <HoverSoundButton className="credits-button" onClick={handleStartGame}>

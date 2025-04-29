@@ -18,6 +18,17 @@ const ENEMY_SOUNDS = {
     }
 };
 
+
+const POPUP_DURATION = 200; // 0.2 seconds in milliseconds
+const POPUP_RISE_AMOUNT = 30; // How many pixels the text rises
+const POPUP_ENTER_DURATION = 50; // ms for fade/scale in
+const POPUP_EXIT_DURATION = 100; // ms for fade/scale out
+const POPUP_FONT = "bold 14px Arial";
+const POPUP_COLOR_FILL = "white";
+const POPUP_COLOR_STROKE = "black";
+const POPUP_OFFSET_Y = -5; // Initial vertical offset from enemy top
+const POPUP_RANDOM_X_RANGE = 15; // Random horizontal spread
+
 export default class Enemy {
     constructor(x, y, type, scalingFactor = 1) {
         const config = ENEMY_TYPES[type] || ENEMY_TYPES.normal;
@@ -59,6 +70,9 @@ export default class Enemy {
         // Flash effect
         this.isFlashing = false;
         this.flashStartTime = 0;
+
+        // handle Popup interval
+        this.damagePopups = []; 
 
         // Load sprites
         this.loadSprites(type);

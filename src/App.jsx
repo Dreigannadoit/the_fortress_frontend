@@ -8,6 +8,8 @@ import TransitionWrapper from './components/UI/TransitionWrapper';
 import Store from './components/Game/Store';
 import { menu } from './assets';
 
+let CURRENCY_AMOUNT = 0;
+
 function App() {
   const [playerData, setPlayerData] = useState({
     currency: 0,

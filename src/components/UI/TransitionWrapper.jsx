@@ -25,6 +25,10 @@ const TransitionWrapper = ({ children }) => {
         "Unlike the other monsters, the lizard men have one goal: kill you",
         "The monster can be defeated if you kill them",
         "I don not know how many tips have typos",
+        "If you kill enemies, you get a higher score",
+        "Does anyone actully read these?",
+        "The longer you survive, the more intense the enemies become",
+        ""
 
     ], []);
 
@@ -33,18 +37,45 @@ const TransitionWrapper = ({ children }) => {
     const [showContent, setShowContent] = useState(false);
 
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-            {/* Main content - only shown after transition completes */}
-            {showContent && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5, ease: 'easeOut' }}
-                    style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}
-                >
-                    {children}
-                </motion.div>
-            )}
+        <div style={{
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            overflow: 'hidden',
+            backgroundColor: '#000'
+        }}>
+            <AnimatePresence>
+                {showContent && (
+                    <motion.div
+                        key="main-content"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{
+                            opacity: 1,
+                            y: 0,
+                            transition: {
+                                duration: 0.8,
+                                ease: [0.33, 1, 0.68, 1]
+                            }
+                        }}
+                        exit={{
+                            opacity: 0,
+                            y: -20,
+                            transition: {
+                                duration: 0.5,
+                                ease: [0.33, 1, 0.68, 1]
+                            }
+                        }}
+                        style={{
+                            position: 'relative',
+                            zIndex: 1,
+                            width: '100%',
+                            height: '100%'
+                        }}
+                    >
+                        {children}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Transition overlay with AnimatePresence */}
             <AnimatePresence onExitComplete={() => setShowContent(true)}>
@@ -58,7 +89,7 @@ const TransitionWrapper = ({ children }) => {
                         animate={{
                             clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0% 100%)',
                             transition: {
-                                duration: 1.2,
+                                duration: 1.8,
                                 ease: [0.33, 1, 0.68, 1],
                                 onComplete: () => setShowOverlay(false)
                             }
@@ -78,7 +109,7 @@ const TransitionWrapper = ({ children }) => {
                             width: '100%',
                             height: '100%',
                             zIndex: 2,
-                            backgroundColor: '#000',
+                            backgroundColor: '#ccc',
                             pointerEvents: 'none',
                             display: 'flex',
                             justifyContent: 'center',
@@ -92,22 +123,27 @@ const TransitionWrapper = ({ children }) => {
                                 y: 0,
                                 transition: {
                                     delay: 0.3,
-                                    duration: 0.5
+                                    duration: 0.5,
+                                    ease: [0.33, 1, 0.68, 1]
                                 }
                             }}
+                            exit={{
+                                opacity: 0,
+                                transition: { duration: 0.2 }
+                            }}
                             style={{
-                                color: '#fff',
+                                color: '#000',
                                 fontSize: 'clamp(1rem, 3vw, 1.5rem)',
                                 textAlign: 'center',
                                 padding: '2rem',
                                 maxWidth: '800px'
                             }}
                         >
+                            <center >
+                                <h1>Tip:</h1>
+                                <p>{randomTip}</p>
+                            </center>
                         </motion.div>
-                        <center> 
-                            <h1>Tip:</h1>
-                            <p>{randomTip}</p>
-                        </center>
                     </motion.div>
                 )}
             </AnimatePresence>
