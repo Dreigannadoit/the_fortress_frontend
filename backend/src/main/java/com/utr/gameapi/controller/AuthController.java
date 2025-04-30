@@ -1,9 +1,9 @@
-package com.example.game_api.gameapi.controller;
+package com.utr.gameapi.controller;
 
-import com.example.game_api.gameapi.dto.JwtResponse;
-import com.example.game_api.gameapi.dto.LoginRequest;
-import com.example.game_api.gameapi.dto.RegisterRequest;
-import com.example.game_api.gameapi.service.AuthService;
+import com.utr.gameapi.dto.JwtResponse;
+import com.utr.gameapi.dto.LoginRequest;
+import com.utr.gameapi.dto.RegisterRequest;
+import com.utr.gameapi.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,12 +17,6 @@ public class AuthController {
 
     @Autowired
     AuthService authService;
-
-    @GetMapping("/public/test")
-    public String test() {
-        return "API is working!";
-    }
-
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         try {

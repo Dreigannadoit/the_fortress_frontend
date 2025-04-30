@@ -1,9 +1,9 @@
-package com.example.game_api.gameapi.config;
+package com.utr.gameapi.config;
 
-import com.example.game_api.gameapi.entity.GameItem;
-import com.example.game_api.gameapi.entity.Weapon;
-import com.example.game_api.gameapi.repository.GameItemRepository;
-import com.example.game_api.gameapi.repository.WeaponRepository;
+import com.utr.gameapi.entity.GameItem;
+import com.utr.gameapi.entity.Weapon;
+import com.utr.gameapi.repository.GameItemRepository;
+import com.utr.gameapi.repository.WeaponRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;

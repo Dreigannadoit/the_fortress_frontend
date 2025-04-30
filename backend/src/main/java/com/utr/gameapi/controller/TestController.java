@@ -1,4 +1,4 @@
-package com.example.game_api.gameapi.controller;
+package com.utr.gameapi.controller;
 
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;

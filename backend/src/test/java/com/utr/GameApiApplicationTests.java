@@ -1,4 +1,4 @@
-package com.example.game_api;
+package com.utr;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

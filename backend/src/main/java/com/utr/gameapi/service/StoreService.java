@@ -1,10 +1,10 @@
-package com.example.game_api.gameapi.service;
+package com.utr.gameapi.service;
 
-import com.example.game_api.gameapi.dto.StoreItemResponse;
-import com.example.game_api.gameapi.entity.GameItem;
-import com.example.game_api.gameapi.entity.Weapon;
-import com.example.game_api.gameapi.repository.GameItemRepository;
-import com.example.game_api.gameapi.repository.WeaponRepository;
+import com.utr.gameapi.dto.StoreItemResponse;
+import com.utr.gameapi.entity.GameItem;
+import com.utr.gameapi.entity.Weapon;
+import com.utr.gameapi.repository.GameItemRepository;
+import com.utr.gameapi.repository.WeaponRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

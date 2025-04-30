@@ -1,7 +1,7 @@
-package com.example.game_api.gameapi.controller;
+package com.utr.gameapi.controller;
 
-import com.example.game_api.gameapi.dto.StoreItemResponse;
-import com.example.game_api.gameapi.service.StoreService;
+import com.utr.gameapi.dto.StoreItemResponse;
+import com.utr.gameapi.service.StoreService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

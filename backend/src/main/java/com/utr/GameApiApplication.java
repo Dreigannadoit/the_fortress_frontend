@@ -1,4 +1,4 @@
-package com.example.game_api;
+package com.utr;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -7,9 +7,9 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@ComponentScan(basePackages = "com.yourgame")
-@EntityScan("com.example.game_api.gameapi.entity")
-@EnableJpaRepositories(basePackages = "com.example.game_api.gameapi.repository")
+@ComponentScan(basePackages = "com.utr")
+@EntityScan("com.utr.gameapi.entity")
+@EnableJpaRepositories(basePackages = "com.utr.gameapi.repository")
 public class GameApiApplication {
 
 	public static void main(String[] args) {

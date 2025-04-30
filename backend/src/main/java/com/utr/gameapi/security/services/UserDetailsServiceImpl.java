@@ -1,7 +1,7 @@
-package com.example.game_api.gameapi.security.services;
+package com.utr.gameapi.security.services;
 
-import com.example.game_api.gameapi.entity.User;
-import com.example.game_api.gameapi.repository.UserRepository;
+import com.utr.gameapi.entity.User;
+import com.utr.gameapi.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

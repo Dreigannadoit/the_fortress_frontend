@@ -1,13 +1,14 @@
-package com.example.game_api.gameapi.controller;
+package com.utr.gameapi.controller;
 
-import com.example.game_api.gameapi.dto.ActiveSkillsRequest;
-import com.example.game_api.gameapi.dto.PlayerDataResponse;
-import com.example.game_api.gameapi.dto.PurchaseRequest;
-import com.example.game_api.gameapi.dto.UpdatePlayerStatsRequest;
-import com.example.game_api.gameapi.service.PlayerDataService;
+import com.utr.gameapi.dto.ActiveSkillsRequest;
+import com.utr.gameapi.dto.PlayerDataResponse;
+import com.utr.gameapi.dto.PurchaseRequest;
+import com.utr.gameapi.dto.UpdatePlayerStatsRequest;
+import com.utr.gameapi.service.PlayerDataService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/player")
 // Ensure user is logged in for all methods here
-// @PreAuthorize("isAuthenticated()")
+@PreAuthorize("isAuthenticated()")
 public class PlayerDataController {
 
     @Autowired

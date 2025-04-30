@@ -1,4 +1,4 @@
-package com.example.game_api.gameapi.security.jwt;
+package com.utr.gameapi.security.jwt;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

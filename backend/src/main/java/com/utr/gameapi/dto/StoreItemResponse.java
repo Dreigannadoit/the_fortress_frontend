@@ -1,4 +1,4 @@
-package com.example.game_api.gameapi.dto;
+package com.utr.gameapi.dto;
 
 import lombok.Data;
 

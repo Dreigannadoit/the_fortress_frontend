@@ -1,7 +1,7 @@
-package com.example.game_api.gameapi.repository;
+package com.utr.gameapi.repository;
 
-import com.example.game_api.gameapi.entity.PlayerStats;
-import com.example.game_api.gameapi.entity.User;
+import com.utr.gameapi.entity.PlayerStats;
+import com.utr.gameapi.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

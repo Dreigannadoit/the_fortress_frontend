@@ -1,8 +1,8 @@
-package com.example.game_api.gameapi.security; // Or security package
+package com.utr.gameapi.security; // Or security package
 
-import com.example.game_api.gameapi.security.jwt.AuthEntryPointJwt;
-import com.example.game_api.gameapi.security.jwt.AuthTokenFilter;
-import com.example.game_api.gameapi.security.services.UserDetailsServiceImpl;
+import com.utr.gameapi.security.jwt.AuthEntryPointJwt;
+import com.utr.gameapi.security.jwt.AuthTokenFilter;
+import com.utr.gameapi.security.services.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

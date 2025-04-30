@@ -1,10 +1,10 @@
-package com.example.game_api.gameapi.service;
+package com.utr.gameapi.service;
 
-import com.example.game_api.gameapi.dto.PlayerDataResponse;
-import com.example.game_api.gameapi.dto.PurchaseRequest;
-import com.example.game_api.gameapi.dto.UpdatePlayerStatsRequest;
-import com.example.game_api.gameapi.entity.*;
-import com.example.game_api.gameapi.repository.*;
+import com.utr.gameapi.dto.PlayerDataResponse;
+import com.utr.gameapi.dto.PurchaseRequest;
+import com.utr.gameapi.dto.UpdatePlayerStatsRequest;
+import com.utr.gameapi.entity.*;
+import com.utr.gameapi.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;

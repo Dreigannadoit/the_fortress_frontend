@@ -1,4 +1,4 @@
-package com.example.game_api.gameapi.dto;
+package com.utr.gameapi.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

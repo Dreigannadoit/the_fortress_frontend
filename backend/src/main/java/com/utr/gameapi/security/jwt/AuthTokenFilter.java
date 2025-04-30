@@ -1,6 +1,6 @@
-package com.example.game_api.gameapi.security.jwt;
+package com.utr.gameapi.security.jwt;
 
-import com.example.game_api.gameapi.security.services.UserDetailsServiceImpl;
+import com.utr.gameapi.security.services.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

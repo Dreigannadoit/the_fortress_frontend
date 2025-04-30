@@ -1,4 +1,4 @@
-package com.example.game_api.gameapi.controller.advice;
+package com.utr.gameapi.controller.advice;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

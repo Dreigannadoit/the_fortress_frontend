@@ -1,15 +1,15 @@
-package com.example.game_api.gameapi.service;
+package com.utr.gameapi.service;
 
-import com.example.game_api.gameapi.dto.JwtResponse;
-import com.example.game_api.gameapi.dto.LoginRequest;
-import com.example.game_api.gameapi.dto.RegisterRequest;
-import com.example.game_api.gameapi.entity.PlayerStats;
-import com.example.game_api.gameapi.entity.User;
-import com.example.game_api.gameapi.entity.UserWeaponOwnership;
-import com.example.game_api.gameapi.entity.Weapon;
-import com.example.game_api.gameapi.repository.UserRepository;
-import com.example.game_api.gameapi.repository.WeaponRepository;
-import com.example.game_api.gameapi.security.jwt.JwtUtils;
+import com.utr.gameapi.dto.JwtResponse;
+import com.utr.gameapi.dto.LoginRequest;
+import com.utr.gameapi.dto.RegisterRequest;
+import com.utr.gameapi.entity.PlayerStats;
+import com.utr.gameapi.entity.User;
+import com.utr.gameapi.entity.UserWeaponOwnership;
+import com.utr.gameapi.entity.Weapon;
+import com.utr.gameapi.repository.UserRepository;
+import com.utr.gameapi.repository.WeaponRepository;
+import com.utr.gameapi.security.jwt.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
