@@ -8,16 +8,23 @@
 
 ## 🎮 Gameplay Overview
 
-- **Genre**: Top-down base defense, zombie survival
+- **Genre**: Top-down base defense, monster survival
 - **Core Mechanics**:
-  - Defend your base from escalating zombie waves
+  - Defend your base from escalating monster waves
   - Upgrade weapons and skills
   - Repair and reinforce your defenses
-  - Face different zombie types (slow, fast, tanky, etc.)
+  - Face different monster types (nomal, fast, tanky, etc.)
+    - **Slime** (Normal Type): These monsters exist solely to sacrifice themselves in order to weaken or destroy obstacles in their path. The demon army deploys them to corrode and dissolve enemy walls and defenses.
 
----
+    - **Lizard Men** (Tracker / Fast Type): Agile and aggressive, Lizard Men excel in high-speed combat, overwhelming enemies with sheer speed and numbers. However, their lightweight build makes them fragile and vulnerable to direct attacks.
 
-**Current Passive Skills:**
+    - **Oni** (Heavy / Tank Type): Oni are powerful brutes with devastating attacks and thick, armor-like skin that grants them strong resistance to damage. Despite their strength, their large size and slow movement make them easy targets for ranged attacks, allowing defenders a chance to eliminate them before they reach the fortress.
+
+
+
+
+
+## **Current Passive Skills:**
 
 
 | Passive Skills | Description                                                                                              |
@@ -30,13 +37,15 @@
 
 ---
 
-- **Planned Features**:
+## **Planned Features**:
   - Weapon upgrade system
   - Power-ups
   - Player stats tracking
   - Multiplayer or co-op mode *(coming soon)*
   - More Passive Skills
-  - Nuke and Air Raid
+  - Dragons Breath
+  - Orb Types
+  - Turret Types
 
 ---
 
