@@ -1,4 +1,4 @@
-package com.yourgame.gameapi.entity;
+package com.example.game_api.gameapi.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
