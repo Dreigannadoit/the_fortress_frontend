@@ -1,7 +1,8 @@
-# 🧟 DreadFront
+# Until They Return
 #### Made By: Dreigonnadoit 
+##### Previously: DreadFront
 
-**DreadFront** is a base defense zombie survival game where players must protect their stronghold from relentless waves of the undead. Arm yourself, fortify your defenses, and survive the dread that’s coming.
+**Until They Return** is a base defense level-based survival game where players must protect their stronghold from relentless waves of the monsters summoned by one of the Demon Lords Generals. Arm yourself, fortify your defenses, and survive the dread that’s coming.
 
 ---
 

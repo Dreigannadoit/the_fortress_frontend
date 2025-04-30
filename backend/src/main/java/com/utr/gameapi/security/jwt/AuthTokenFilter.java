@@ -38,16 +38,17 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,
-                                null, // Credentials are null for JWT-based auth
-                                userDetails.getAuthorities()); // Get authorities (roles)
+                                null,
+                                userDetails.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
             logger.error("Cannot set user authentication: {}", e.getMessage());
-            // Consider clearing context or handling specific exceptions
-            // SecurityContextHolder.clearContext(); // Optional: uncomment if needed
+            // Set CORS headers even for failed auth
+            response.setHeader("Access-Control-Allow-Origin", request.getHeader("Origin"));
+            response.setHeader("Access-Control-Allow-Credentials", "true");
         }
 
         filterChain.doFilter(request, response);

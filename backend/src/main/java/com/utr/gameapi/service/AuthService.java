@@ -16,9 +16,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import com.utr.gameapi.security.services.UserDetailsImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class AuthService {
@@ -38,43 +42,50 @@ public class AuthService {
     @Autowired
     JwtUtils jwtUtils;
 
-    @Transactional // Make registration atomic
+    @Transactional
     public void registerUser(RegisterRequest registerRequest) {
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
             throw new IllegalArgumentException("Error: Username is already taken!");
         }
 
-        // Create new user's account
-        User user = new User(registerRequest.getUsername(),
-                encoder.encode(registerRequest.getPassword()));
+        User user = new User(
+                registerRequest.getUsername(),
+                encoder.encode(registerRequest.getPassword())
+        );
 
-        // Create initial player stats
+        // Initialize player stats
         PlayerStats stats = new PlayerStats(user);
-        stats.setCurrentWeaponName("pistol"); // Ensure default weapon is set
-        user.setPlayerStats(stats); // Establish bidirectional link
+        stats.setCurrentWeaponName("pistol");
+        user.setPlayerStats(stats);
 
-        // Find the default pistol weapon definition
+        // Grant default weapon
         Weapon defaultWeapon = weaponRepository.findByName("pistol")
-                .orElseThrow(() -> new RuntimeException("Error: Default weapon 'pistol' not found in database!"));
-
-        // Grant ownership of the default weapon
+                .orElseThrow(() -> new RuntimeException("Default weapon 'pistol' not found"));
         user.addOwnedWeapon(new UserWeaponOwnership(user, defaultWeapon));
 
-        userRepository.save(user); // Saving user cascades to PlayerStats and UserWeaponOwnership
+        userRepository.save(user);
     }
 
     public JwtResponse authenticateUser(LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+                new UsernamePasswordAuthenticationToken(
+                        loginRequest.getUsername(),
+                        loginRequest.getPassword()
+                )
+        );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow(
-                () -> new RuntimeException("User not found after authentication") // Should not happen
-        );
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(item -> item.getAuthority())
+                .collect(Collectors.toList());
 
-        return new JwtResponse(jwt, "Bearer", user.getId(), userDetails.getUsername());
+        return new JwtResponse(
+                jwt,
+                userDetails.getId(),
+                userDetails.getUsername()
+        );
     }
 }

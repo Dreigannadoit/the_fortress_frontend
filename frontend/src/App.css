@@ -348,3 +348,195 @@ button.menu-button:hover {
         transform: translateY(-20px);
     }
 }
+
+/* Auth Page Styles */
+.auth-page-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #1a1a2e;
+    background-image: 
+        linear-gradient(#2d2d44 1px, transparent 1px),
+        linear-gradient(90deg, #2d2d44 1px, transparent 1px);
+    background-size: 20px 20px;
+    padding: 20px;
+    font-family: 'Courier New', monospace;
+}
+
+.auth-form-wrapper {
+    background-color: #16213e;
+    border: 4px solid #0f3460;
+    box-shadow: 
+        0 0 0 2px #e94560,
+        0 0 0 6px #0f3460,
+        0 8px 0 0 rgba(0, 0, 0, 0.3);
+    padding: 30px;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 0;
+    position: relative;
+}
+
+.auth-form-wrapper::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    border: 2px solid #e94560;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.auth-form-wrapper h2 {
+    color: #e94560;
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 24px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 0 #0f3460;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #f1f1f1;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    background-color: #2d2d44;
+    border: 2px solid #0f3460;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    box-shadow: inset 0 0 0 2px #e94560;
+    transition: all 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 2px #e94560, 0 0 0 2px #e94560;
+    border-color: #e94560;
+}
+
+.auth-submit-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #e94560;
+    color: white;
+    border: none;
+    border-bottom: 4px solid #b52e46;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.1s;
+    margin-top: 10px;
+}
+
+.auth-submit-button:hover {
+    background-color: #ff5c77;
+    transform: translateY(-2px);
+}
+
+.auth-submit-button:active {
+    transform: translateY(2px);
+    border-bottom-width: 2px;
+}
+
+.auth-submit-button:disabled {
+    background-color: #555;
+    border-bottom-color: #333;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.auth-toggle-button {
+    background: none;
+    border: none;
+    color: #e94560;
+    text-decoration: underline;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    padding: 0;
+    margin-left: 5px;
+}
+
+.auth-toggle-button:hover {
+    color: #ff5c77;
+}
+
+.auth-toggle-button:disabled {
+    color: #777;
+    cursor: not-allowed;
+}
+
+.auth-error {
+    color: #ff8c8c;
+    background-color: #5c1d1d;
+    padding: 10px;
+    border: 2px solid #ff3e3e;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Pixel art corner decorations */
+.auth-form-wrapper::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background-color: #e94560;
+}
+
+.auth-form-wrapper::after {
+    top: -8px;
+    left: -8px;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.auth-form-wrapper::before {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background-color: #e94560;
+    top: -8px;
+    right: -8px;
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+.auth-form-wrapper .corner-bottom-left {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background-color: #e94560;
+    bottom: -8px;
+    left: -8px;
+    clip-path: polygon(0 0, 0 100%, 100% 100%);
+}
+
+.auth-form-wrapper .corner-bottom-right {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background-color: #e94560;
+    bottom: -8px;
+    right: -8px;
+    clip-path: polygon(100% 0, 0 100%, 100% 100%);
+}

@@ -13,22 +13,36 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 public class GameApiApplication {
 
 	public static void main(String[] args) {
-
 		String[] art = {
-				"DDDDDDDDDDD       RRRRRRRRRRRRR     EEEEEEEEEEEEEEE   IIIIIIIIIIIIIII",
-				"DDD      DDDDD    RRR         RRR   EEE                     III       ",
-				"DDD        DDDD   RRR      RRRRRR   EEE                     III",
-				"DDD         DDD   RRRRRRRRRRRRR     EEEEEEEEEEEEEEE         III",
-				"DDD        DDDD   RRR       RRRRR   EEE                     III",
-				"DDD      DDDDD    RRR         RRR   EEE                     III",
-				"DDDDDDDDDDD       RRR         RRR   EEEEEEEEEEEEEEE   IIIIIIIIIIIIIIII",
+				"====================================================================== ",
+				"DDDDDDDDDDD       RRRRRRRRRRRRR     EEEEEEEEEEEEEEE   IIIIIIIIIIIIIII  ",
+				"DDD      DDDDD    RRR         RRR   EEE                     III        ",
+				"DDD        DDDD   RRR      RRRRRR   EEE                     III        ",
+				"DDD         DDD   RRRRRRRRRRRRR     EEEEEEEEEEEEEEE         III        ",
+				"DDD        DDDD   RRR       RRRRR   EEE                     III        ",
+				"DDD      DDDDD    RRR         RRR   EEE                     III        ",
+				"DDDDDDDDDDD       RRR         RRR   EEEEEEEEEEEEEEE   IIIIIIIIIIIIIIII ",
+				"====================================================================== ",
+				"https://dreiabmab.com"
+		};
+		String[] bye = {
+				"       _    (^)",
+				"      (_\\   |_|",
+				"       \\_\\  |_|",
+				"       _\\_\\,/_|",
+				"      (`\\(_|`\\|",
+				"     (`\\,)  \\ \\",
+				"      \\,)   | | ",
+				"        \\__(__|",
+				"====================================================================== ",
+				"https://dreiabmab.com"
 		};
 
-		for (String line : art) {
-			System.out.println(line);
-		}
+		for (String line : art) System.out.println(line);
 
 		SpringApplication.run(GameApiApplication.class, args);
+
+		for (String line : bye) System.out.println(line);
 	}
 
 }
