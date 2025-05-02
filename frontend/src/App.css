@@ -71,6 +71,9 @@
     gap: 15px;
 }
 
+.loading-spinner{
+    background-color: #000;
+}
 
 .content-container .top .left .welcome-message {
     font-size: 1.4em;

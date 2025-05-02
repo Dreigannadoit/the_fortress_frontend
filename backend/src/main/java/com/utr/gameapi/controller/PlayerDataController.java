@@ -30,21 +30,20 @@ public class PlayerDataController {
         return userDetails.getUsername();
     }
 
-    @GetMapping("/data") // Changed from /stats to be more descriptive
+    @GetMapping("/data")
     public ResponseEntity<PlayerDataResponse> getPlayerData(Authentication authentication) {
         String username = getCurrentUsername(authentication);
         PlayerDataResponse data = playerDataService.getPlayerData(username);
         return ResponseEntity.ok(data);
     }
 
-    @PutMapping("/data") // Changed from /stats
+    @PutMapping("/data")
     public ResponseEntity<?> updatePlayerData(Authentication authentication, @Valid @RequestBody UpdatePlayerStatsRequest request) {
         String username = getCurrentUsername(authentication);
         try {
             PlayerDataResponse updatedData = playerDataService.updatePlayerStats(username, request);
             return ResponseEntity.ok(updatedData);
         } catch (Exception e) {
-            // Log error e
             return ResponseEntity.badRequest().body("Error updating player data: " + e.getMessage());
         }
     }
@@ -58,7 +57,6 @@ public class PlayerDataController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            // Log error e
             return ResponseEntity.internalServerError().body("Error processing purchase: " + e.getMessage());
         }
     }
@@ -72,7 +70,6 @@ public class PlayerDataController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            // Log error e
             return ResponseEntity.internalServerError().body("Error setting weapon: " + e.getMessage());
         }
     }
@@ -86,24 +83,20 @@ public class PlayerDataController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            // Log error e
             return ResponseEntity.internalServerError().body("Error setting active skills: " + e.getMessage());
         }
     }
 
-    @DeleteMapping("/account") // Define the DELETE endpoint
+    @DeleteMapping("/account")
     public ResponseEntity<?> deleteUserAccount(Authentication authentication) {
         String username = getCurrentUsername(authentication);
         try {
             playerDataService.deleteAccount(username);
-            // Return 200 OK with a message or 204 No Content
             return ResponseEntity.ok("Account deleted successfully.");
-            // return ResponseEntity.noContent().build(); // Alternative for 204 status
         } catch (UsernameNotFoundException e) {
             // This shouldn't ideally happen if PreAuthorize works, but good practice
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
-            // Log error e
             System.err.println("Error deleting account for " + username + ": " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error deleting account. Please try again later.");

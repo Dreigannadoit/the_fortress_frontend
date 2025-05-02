@@ -11,6 +11,6 @@ public class RegisterRequest {
     private String username;
 
     @NotBlank
-    @Size(min = 6, max = 120) // Add password complexity validation if needed
+    @Size(min = 6, max = 120)
     private String password;
 }

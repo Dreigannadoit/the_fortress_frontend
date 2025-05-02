@@ -1,3 +1,4 @@
+import { turret_shoot } from "../assets";
 import { getScaledValue } from "../utils/getScaledValue";
 import minutesToMilliseconds from "../utils/MinutesToMilliseconds";
 
@@ -24,7 +25,8 @@ export const ITEM_SPAWN_INTERVAL = minutesToMilliseconds(0.2);
 export const ITEM_SPAWN_CHANCE = 0.3; 
 
 export const TURRET_CONFIG = {
-    size: 90,           // Base diameter
+    fireSound: turret_shoot,
+    size: 90,           // Base diameter,
     barrelLength: 60,   // Length of the barrel
     bulletSize: 6,     
     bulletSpeed: 40, 

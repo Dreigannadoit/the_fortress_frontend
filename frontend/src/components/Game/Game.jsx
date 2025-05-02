@@ -14,12 +14,12 @@ const Game = ({ playerData: initialPlayerData, // Rename prop for clarity
     setGameActive,
     // Pass down weapon/skill setters if needed
     setCurrentWeaponAndRefresh,
-    setActiveSkillsAndRefresh
+    setActiveSkillsAndRefreshs
  }) => {
     const navigate = useNavigate();
     const canvasRef = useCanvas();
 
-    const gameDuration = minutesToMilliseconds(2); // Example: 2 minutes
+    const gameDuration = minutesToMilliseconds(7); // Example: 2 minutes
 
     // --- Pass initialPlayerData and API interaction functions to the hook ---
     const {
@@ -67,7 +67,7 @@ const Game = ({ playerData: initialPlayerData, // Rename prop for clarity
         gameDuration,
         initialPlayerData, // Pass the initial state from API
         setPlayerData, // Pass the local state setter
-        setActiveSkillsAndRefresh // Pass the API function for skill toggling
+        setActiveSkillsAndRefreshs // Pass the API function for skill toggling
         // Pass setCurrentWeaponAndRefresh if needed
     );
 

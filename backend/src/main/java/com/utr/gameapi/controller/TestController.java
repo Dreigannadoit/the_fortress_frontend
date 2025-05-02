@@ -5,7 +5,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// Test if API is working
 @CrossOrigin(origins = "*", maxAge = 3600) // Allow all origins for now, refine in production
 @RestController
 @RequestMapping("/public")

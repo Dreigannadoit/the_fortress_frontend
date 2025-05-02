@@ -84,6 +84,7 @@ const useGameEngine = (
     const bottomSpriteImage = useRef(null);
     const backgroundImageRef = useRef(null);
     const cursorImageRef = useRef(null);
+    const turretFireSound = useRef(null);
     // --- Initialize Engine State from initialPlayerData ---
 
     useEffect(() => {
@@ -219,6 +220,19 @@ const useGameEngine = (
     }, []);
 
     useEffect(() => {
+        // Preload turret sound
+        turretFireSound.current = new Audio(TURRET_CONFIG.fireSound);
+        turretFireSound.current.volume = 0.3;
+        
+        return () => {
+            if (turretFireSound.current) {
+                turretFireSound.current.pause();
+                turretFireSound.current = null;
+            }
+        };
+    }, []);
+
+    useEffect(() => {
         cursorImageRef.current = new Image();
         cursorImageRef.current.src = 'src/assets/cursor.png';
         cursorImageRef.current.onerror = () => console.error("Failed to load cursor image");
@@ -308,7 +322,7 @@ const useGameEngine = (
             audioRef.current = null;
         }
 
-        const tracks = [background_gameplay_1, background_gameplay_2];
+        const tracks = [background_gameplay_2, background_gameplay_1];
         currentTrackIndex.current = 0;
 
         const playTrack = () => {
@@ -336,9 +350,9 @@ const useGameEngine = (
 
     const toggleMusic = useCallback(() => {
         if (isMusicPlaying) {
-            if (audioRef.current) {
-                audioRef.current.pause();
-            }
+            // if (audioRef.current) {
+            //     audioRef.current.pause();
+            // }
             setIsMusicPlaying(false);
         } else {
             playBackgroundMusic();
@@ -961,13 +975,13 @@ const useGameEngine = (
         const updateTurrets = () => {
             turrets.current.forEach(turret => {
                 if (isPaused) return;
-
+        
                 // Set default turret position
                 if (turret.y === null || turret.y === undefined)
                     turret.y = canvas.height - LINE_Y_OFFSET + 50;
                 if (turret.x === null || turret.x === undefined)
                     turret.x = canvas.width - 150;
-
+        
                 // Find the closest enemy within range
                 let closestEnemy = null;
                 let closestDistance = Infinity;
@@ -978,7 +992,7 @@ const useGameEngine = (
                         closestEnemy = enemy;
                     }
                 });
-
+        
                 // Target and shoot
                 turret.targetEnemy = closestEnemy;
                 if (turret.targetEnemy) {
@@ -986,9 +1000,16 @@ const useGameEngine = (
                     const dx = turret.targetEnemy.x - turret.x;
                     const dy = turret.targetEnemy.y - turret.y;
                     turret.angle = Math.atan2(dy, dx);
-
+        
                     // Fire bullet
                     if (Date.now() - turret.lastFireTime > TURRET_CONFIG.fireRate) {
+                        // Play firing sound
+                        if (turretFireSound.current) {
+                            turretFireSound.current.currentTime = 0; // Rewind to start
+                            turretFireSound.current.play().catch(e => console.log('Turret sound play failed:', e));
+                        }
+        
+                        // Create bullet
                         bullets.current.push({
                             x: turret.x + Math.cos(turret.angle) * TURRET_CONFIG.barrelLength,
                             y: turret.y + Math.sin(turret.angle) * TURRET_CONFIG.barrelLength,

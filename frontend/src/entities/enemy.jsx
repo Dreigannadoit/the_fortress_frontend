@@ -82,7 +82,7 @@ export default class Enemy {
         // Store player position if available
         if (player) {
             this.lastPlayerX = player.x;
-            this.lastPlayerY = player.y; // Add this line
+            this.lastPlayerY = player.y;
         }
 
         // Apply velocity and friction
@@ -237,35 +237,20 @@ export default class Enemy {
 
     draw(ctx) {
         this.updateAnimation();
-        this.updateFlash(); // Add this line
-
+        this.updateFlash();
+    
         ctx.save();
-
+    
         if (this.isFlashing) {
             ctx.filter = 'hue-rotate(0deg) saturate(3)';
             ctx.opacity = 0.5;
         }
-
+    
+        // For fast enemies, just face left/right without rotation
         if (this.type === 'fast') {
-            const frame = this.spriteRefs?.[this.currentFrame]?.current;
-        
-            if (frame?.complete) {
-                try {
-                    ctx.translate(this.x + this.size / 2, this.y + this.size / 2);
-                    const angle = Math.atan2(
-                        this.lastPlayerY - (this.y + this.size / 2),
-                        this.lastPlayerX - (this.x + this.size / 2)
-                    );
-                    ctx.rotate(angle);
-                    ctx.drawImage(frame, -this.size / 2, -this.size / 2, this.size, this.size);
-                } catch (e) {
-                    console.error('Error drawing rotated fast enemy:', e);
-                    this.drawFallback(ctx);
-                }
-            } else {
-                this.drawFallback(ctx);
-            }
-        } else {
+            // Determine facing direction based on player position
+            this.facingRight = this.lastPlayerX > this.x;
+            
             const drawX = this.facingRight ? this.x : this.x + this.size;
             if (!this.facingRight) {
                 ctx.translate(drawX, this.y);
@@ -273,7 +258,28 @@ export default class Enemy {
             } else {
                 ctx.translate(this.x, this.y);
             }
-        
+    
+            const frame = this.spriteRefs?.[this.currentFrame]?.current;
+            if (frame?.complete) {
+                try {
+                    ctx.drawImage(frame, 0, 0, this.size, this.size);
+                } catch (e) {
+                    console.error('Error drawing fast enemy sprite:', e);
+                    this.drawFallback(ctx);
+                }
+            } else {
+                this.drawFallback(ctx);
+            }
+        } else {
+            // Original drawing logic for other enemy types
+            const drawX = this.facingRight ? this.x : this.x + this.size;
+            if (!this.facingRight) {
+                ctx.translate(drawX, this.y);
+                ctx.scale(-1, 1);
+            } else {
+                ctx.translate(this.x, this.y);
+            }
+    
             const frame = this.spriteRefs?.[this.currentFrame]?.current;
             if (frame?.complete) {
                 try {
@@ -286,12 +292,13 @@ export default class Enemy {
                 this.drawFallback(ctx);
             }
         }
-        ctx.filter = 'none'; 
+    
+        ctx.filter = 'none';
         ctx.restore();
-
+    
         // Draw health bar (in original coordinates)
         this.drawHealthBar(ctx);
-
+    
         // Draw burning effect if needed
         if (this.isBurning) {
             this.drawBurningEffect(ctx);

@@ -9,6 +9,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { menu } from './assets';
 import { getPlayerData, login, register, updatePlayerStatsApi, purchaseItemApi, setCurrentWeaponApi, setActiveSkillsApi } from './utils/api'; // Import API functions
+import LoadingSpinner from './components/UI/LoadingSpinner';
 
 // Helper to map API response to React state structure
 const mapApiDataToReactState = (apiData) => {
@@ -209,7 +210,7 @@ function AppContent() {
 
     // --- Render Logic ---
     if (isLoading && !playerData) { // Show loading only on initial load
-        return <div className="loading-overlay">Loading Game...</div>; // Or a better spinner
+        return <LoadingSpinner />; // Or a better spinner
     }
 
     return (
@@ -257,11 +258,11 @@ function AnimatedRoutes({
     isLoading
 }) {
     const location = useLocation();
-    const navigate = useNavigate(); // Use navigate from here
+    const navigate = useNavigate();
     const [gameActive, setGameActive] = useState(false);
-    // Audio logic - seems okay, but ensure audioRef is properly managed
-    const [audioInitialized, setAudioInitialized] = useState(false);
     const audioRef = useRef(null);
+    const [audioInitialized, setAudioInitialized] = useState(false);
+
     useEffect(() => {
         const audio = new Audio(menu);
         audio.loop = true;
@@ -272,7 +273,7 @@ function AnimatedRoutes({
         return () => {
             if (audioRef.current) {
                 audioRef.current.pause();
-                audioRef.current = null; // Clean up
+                audioRef.current = null;
             }
         };
     }, []);
@@ -290,21 +291,43 @@ function AnimatedRoutes({
         }
     }, [location.pathname, audioInitialized, isAuthenticated]); // Add isAuthenticated
 
+    useEffect(() => {
+        if (!audioInitialized || !audioRef.current) return;
+
+        const handleAudio = async () => {
+            try {
+                // Pause only if entering game route
+                if (location.pathname === '/game') {
+                    if (!audioRef.current.paused) {
+                        audioRef.current.pause();
+                    }
+                } 
+                // Play in all other authenticated routes
+                else if (isAuthenticated && audioRef.current.paused) {
+                    await audioRef.current.play();
+                }
+            } catch (err) {
+                console.log('Audio playback error:', err);
+            }
+        };
+
+        handleAudio();
+    }, [location.pathname, audioInitialized, isAuthenticated]);
+
     // First interaction handler (needed for autoplay policy)
     useEffect(() => {
-        if (!isAuthenticated) return; // Don't add listener if not logged in
+        if (!isAuthenticated) return;
 
         const handleFirstInteraction = () => {
-            if (audioRef.current && audioRef.current.paused) {
+            if (audioRef.current && audioRef.current.paused && location.pathname !== '/game') {
                 audioRef.current.play().catch(e => console.log('Audio play error:', e));
             }
             document.removeEventListener('click', handleFirstInteraction);
         };
+
         document.addEventListener('click', handleFirstInteraction);
-        return () => {
-            document.removeEventListener('click', handleFirstInteraction);
-        };
-    }, [isAuthenticated]); // Add isAuthenticated dependency
+        return () => document.removeEventListener('click', handleFirstInteraction);
+    }, [isAuthenticated, location.pathname]); 
 
 
     // Prevent access to game routes if not authenticated

@@ -96,7 +96,7 @@ public class DataInitializer implements CommandLineRunner {
             basicTurret.setDescription("Automatic targeting with moderate damage");
             basicTurret.setPrice(1000);
             basicTurret.setAvailable(true);
-            // Add turret-specific stats if needed, e.g., basicTurret.setTurretDamage(15);
+            // TODO: Add turret-specific stats if needed, e.g., basicTurret.setTurretDamage(15);
 
             GameItem sniperTurret = new GameItem();
             sniperTurret.setItemId("sniper_turret");
@@ -104,7 +104,7 @@ public class DataInitializer implements CommandLineRunner {
             sniperTurret.setCategory("turrets");
             sniperTurret.setDescription("High damage, low rate of fire");
             sniperTurret.setPrice(1500);
-            sniperTurret.setAvailable(false); // As per your Store.js
+            sniperTurret.setAvailable(false);
 
 
             // Orbs
@@ -115,7 +115,7 @@ public class DataInitializer implements CommandLineRunner {
             attackOrb.setDescription("Attacks nearby enemies");
             attackOrb.setPrice(700);
             attackOrb.setAvailable(true);
-            // Add other orbs... defense_orb, healing_orb, support_orb set available=false if needed
+            // TODO: Add other orbs... defense_orb, healing_orb, support_orb set available=false if needed
 
             // Skills
             GameItem recovery = new GameItem();
@@ -135,28 +135,28 @@ public class DataInitializer implements CommandLineRunner {
             lifeSteal.setAvailable(true);
 
             GameItem thorns = new GameItem();
-            lifeSteal.setItemId("thorns");
-            lifeSteal.setName("Thorns");
-            lifeSteal.setCategory("skills");
-            lifeSteal.setDescription("Reflect damage to attacker");
-            lifeSteal.setPrice(600);
-            lifeSteal.setAvailable(true);
+            thorns.setItemId("thorns");
+            thorns.setName("Thorns");
+            thorns.setCategory("skills");
+            thorns.setDescription("Reflect some damage back to attackers");
+            thorns.setPrice(500);
+            thorns.setAvailable(true);
 
             GameItem momentum = new GameItem();
-            lifeSteal.setItemId("momentum");
-            lifeSteal.setName("Momentum");
-            lifeSteal.setCategory("skills");
-            lifeSteal.setDescription("Increase speed after not taking damage");
-            lifeSteal.setPrice(600);
-            lifeSteal.setAvailable(true);
+            momentum.setItemId("momentum");
+            momentum.setName("Momentum");
+            momentum.setCategory("skills");
+            momentum.setDescription("Move faster the longer you travel in one direction");
+            momentum.setPrice(450);
+            momentum.setAvailable(true);
 
             GameItem fastReload = new GameItem();
-            lifeSteal.setItemId("fastReload");
-            lifeSteal.setName("Fast Reload");
-            lifeSteal.setCategory("skills");
-            lifeSteal.setDescription("Faster Reload time for all weapons");
-            lifeSteal.setPrice(600);
-            lifeSteal.setAvailable(true);
+            fastReload.setItemId("fastReload");
+            fastReload.setName("Fast Reload");
+            fastReload.setCategory("skills");
+            fastReload.setDescription("Reduce reload time by 30%");
+            fastReload.setPrice(550);
+            fastReload.setAvailable(true);
 
             // Ultimates
             GameItem dragonsBreath = new GameItem();
@@ -170,8 +170,8 @@ public class DataInitializer implements CommandLineRunner {
 
             List<GameItem> itemsToSave = Arrays.asList(
                     basicTurret, sniperTurret,
-                    attackOrb, /* other orbs... */
-                    recovery, lifeSteal, /* other skills... */
+                    attackOrb,
+                    recovery, lifeSteal, thorns, momentum, fastReload,
                     dragonsBreath
             );
 

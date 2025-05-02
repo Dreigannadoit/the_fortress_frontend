@@ -24,14 +24,15 @@ public class StoreService {
 
     @Transactional(readOnly = true)
     public List<StoreItemResponse> getAvailableStoreItems() {
-        // Fetch available weapons
-        List<Weapon> weapons = weaponRepository.findByUnlockable(true); // Assuming unlockable means potentially available
+        // Fetch weapons marked as unlockable (usually means they can appear in store/game)
+        List<Weapon> weapons = weaponRepository.findByUnlockable(true);
         List<StoreItemResponse> weaponItems = weapons.stream()
                 .map(this::mapWeaponToStoreItem)
                 .collect(Collectors.toList());
 
-        // Fetch available game items (turrets, skills, etc.)
-        List<GameItem> gameItems = gameItemRepository.findByAvailable(true);
+        // Fetch ALL game items (skills, orbs, etc.)
+        // Let the 'available' flag handle display logic in the frontend
+        List<GameItem> gameItems = gameItemRepository.findAll(); // <--- CHANGE THIS LINE
         List<StoreItemResponse> otherItems = gameItems.stream()
                 .map(this::mapGameItemToStoreItem)
                 .collect(Collectors.toList());
@@ -41,15 +42,16 @@ public class StoreService {
                 .collect(Collectors.toList());
     }
 
-    // Helper mapping functions
+    // Helper mapping functions (remain the same)
     private StoreItemResponse mapWeaponToStoreItem(Weapon weapon) {
         StoreItemResponse dto = new StoreItemResponse();
-        dto.setId(weapon.getName()); // Use name as the unique ID for weapons in store
-        dto.setName(weapon.getName()); // Or use a separate display name field if you add one
+        dto.setId(weapon.getName());
+        dto.setName(weapon.getName());
         dto.setPrice(weapon.getPrice());
         dto.setDescription(weapon.getDescription());
         dto.setCategory("weapons");
-        dto.setAvailable(weapon.isUnlockable()); // Base availability on unlockable status
+        // 'available' for weapons could still depend on unlockable, or add a specific 'storeAvailable' field
+        dto.setAvailable(weapon.isUnlockable());
         return dto;
     }
 
@@ -60,7 +62,7 @@ public class StoreService {
         dto.setPrice(item.getPrice());
         dto.setDescription(item.getDescription());
         dto.setCategory(item.getCategory());
-        dto.setAvailable(item.isAvailable());
+        dto.setAvailable(item.isAvailable()); // Use the flag directly from the DB item
         return dto;
     }
 }

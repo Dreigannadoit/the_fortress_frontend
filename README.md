@@ -85,11 +85,14 @@ DJARTMUSIC - Best Game Console - https://pixabay.com/music/search/genre/video%20
 Grand_Project - Breath of Life_10 minutes - https://pixabay.com/music/meditationspiritual-breath-of-life-10-minutes-320859/
 
 
-
 SFX - https://pixabay.com
+
+
 
 Graphics
 
 pixel-boy - Ninja Adventure - Asset Pack - https://pixel-boy.itch.io/ninja-adventure-asset-pack
+
+Sideshop - faxdoc - https://www.deviantart.com/faxdoc/art/Sideshop-566561669
 
 

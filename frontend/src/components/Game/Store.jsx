@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getStoreItems } from '../../utils/api'; 
+import { getStoreItems } from '../../utils/api';
+import LoadingSpinner from '../UI/LoadingSpinner';
+import { store } from '../../assets';
 const Store = ({ playerData, purchaseItemAndRefresh, setGameActive }) => {
     const [selectedCategory, setSelectedCategory] = useState('weapons');
     const [storeItems, setStoreItems] = useState({ // Structure to hold fetched items
@@ -60,8 +62,8 @@ const Store = ({ playerData, purchaseItemAndRefresh, setGameActive }) => {
     const handlePurchase = async (item) => {
         setPurchaseError(null); // Clear previous purchase error
         if (playerData.currency < item.price) {
-             alert("Not enough currency!"); // Keep simple alert or use state for message
-             return;
+            alert("Too Broke, Boi!"); // Keep simple alert or use state for message
+            return;
         }
         if (!item.available) {
             alert("This item is not currently available.");
@@ -69,16 +71,13 @@ const Store = ({ playerData, purchaseItemAndRefresh, setGameActive }) => {
         }
 
         try {
-             console.log(`Attempting purchase: ID=${item.id}, Category=${item.category}`);
-            // Call the function passed from App.js which handles API call + refresh
+            console.log(`Attempting purchase: ID=${item.id}, Category=${item.category}`);
             await purchaseItemAndRefresh(item.id, item.category);
             console.log(`Purchased ${item.name}!`);
-            // Play success sound or show temporary success message
         } catch (err) {
             console.error(`Purchase failed for ${item.name}:`, err);
-             // Display the specific error message from the API if available
-             setPurchaseError(err.message || "Purchase failed. Please try again.");
-             // Optionally show an alert: alert("Purchase failed!");
+            setPurchaseError(err.message || "Purchase failed. Please try again.");
+            alert("Purcase Fialed")
         }
     };
 
@@ -91,11 +90,11 @@ const Store = ({ playerData, purchaseItemAndRefresh, setGameActive }) => {
         // Check other categories
         const ownedCategoryItems = playerData.ownedItems[category];
         return ownedCategoryItems?.includes(itemId);
-      };
+    };
 
     // --- Render Logic ---
     if (isLoading) {
-        return <div className="store-container"><h2>Loading Store...</h2></div>;
+        return <LoadingSpinner />;
     }
     if (error) {
         return <div className="store-container"><h2>{error}</h2><button onClick={handleExit}>Back</button></div>;
@@ -107,7 +106,6 @@ const Store = ({ playerData, purchaseItemAndRefresh, setGameActive }) => {
             <div className="store-header">
                 <h2>STORE</h2>
                 <div className="currency-display">
-                    {/* Display currency from playerData prop */}
                     <span>Currency: {playerData?.currency ?? 0}</span>
                 </div>
                 <button onClick={handleExit} className="exit-button">Exit Store</button>
@@ -115,22 +113,20 @@ const Store = ({ playerData, purchaseItemAndRefresh, setGameActive }) => {
             {purchaseError && <p className="error-message purchase-error">{purchaseError}</p>}
 
             <div className="store-categories">
-                {/* Buttons to select category */}
-                 {Object.keys(storeItems).map(category => (
+                {Object.keys(storeItems).map(category => (
                     <button
                         key={category}
                         onClick={() => setSelectedCategory(category)}
                         className={selectedCategory === category ? 'active' : ''}
                     >
-                        {/* Capitalize category name for display */}
                         {category.charAt(0).toUpperCase() + category.slice(1)}
                     </button>
                 ))}
             </div>
 
             <div className="store-items">
-                 {storeItems[selectedCategory] && storeItems[selectedCategory].length > 0 ? (
-                     storeItems[selectedCategory].map(item => {
+                {storeItems[selectedCategory] && storeItems[selectedCategory].length > 0 ? (
+                    storeItems[selectedCategory].map(item => {
                         const owned = isItemOwned(item.id, item.category);
                         const canAfford = playerData && playerData.currency >= item.price;
                         return (
@@ -160,10 +156,10 @@ const Store = ({ playerData, purchaseItemAndRefresh, setGameActive }) => {
                                 </div>
                             </div>
                         );
-                     })
-                 ) : (
+                    })
+                ) : (
                     <p>No items available in this category.</p>
-                 )}
+                )}
             </div>
 
         </div>

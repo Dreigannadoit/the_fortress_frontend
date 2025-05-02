@@ -5,14 +5,13 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class UpdatePlayerStatsRequest { // For saving game progress
-    @NotNull // Use NotNull for primitives, NotBlank for Strings
+public class UpdatePlayerStatsRequest {
+    @NotNull
     private Integer currency;
     @NotNull
     private Float level;
     @NotNull
     private Integer kills;
-    private String currentWeaponName; // Optional update
-    private List<String> activeSkillIds; // Optional update
-    // Include owned items if game session can unlock items directly
+    private String currentWeaponName;
+    private List<String> activeSkillIds;
 }

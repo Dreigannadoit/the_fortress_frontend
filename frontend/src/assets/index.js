@@ -22,6 +22,7 @@ import Slingshot from "./items/Slingshot.png"
 import WizardWand from "./items/WizardWand.png"
 
 import floor from "./floor.png"
+import store from "./store.gif"
 
 // Audio files for the game
 import slingshotSound from "./sound/sfx/slingshot.mp3"
@@ -38,6 +39,7 @@ import background_gameplay_1 from "./sound/sfx/background_gameplay_1.mp3"
 import background_gameplay_2 from "./sound/sfx/background_gameplay_2.mp3"
 import menu from "./sound/sfx/menu.mp3"
 import buttons from "./sound/sfx/buttons.mp3"
+import turret_shoot from "./sound/sfx/turret.mp3"
 
 
 export {
@@ -58,6 +60,8 @@ export {
     RockSpell,
     Slingshot,
     WizardWand,
+    turret_shoot,
+    store,
 
     // Audio files
     slingshotSound,

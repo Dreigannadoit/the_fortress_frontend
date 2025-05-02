@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-@Data // Lombok: Generates getters, setters, toString, equals, hashCode
+@Data
 public class LoginRequest {
     @NotBlank
     private String username;

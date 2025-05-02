@@ -15,8 +15,8 @@ public class JwtResponse {
     private Long id;
     private String username;
     private List<String> roles; // Include roles if you implement them
+    // TODO: Add admin functionality, too lazy too do it now
 
-    // Constructor without roles for backward compatibility
     public JwtResponse(String token, Long id, String username) {
         this.token = token;
         this.id = id;

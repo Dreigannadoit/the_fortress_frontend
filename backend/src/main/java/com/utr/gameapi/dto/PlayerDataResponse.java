@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Data
-public class PlayerDataResponse { // Combines stats and ownership for React state
+public class PlayerDataResponse {
     private int currency;
     private float level;
     private int kills;
