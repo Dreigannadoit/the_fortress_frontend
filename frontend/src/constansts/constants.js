@@ -9,7 +9,9 @@ export const ENEMY_FAST_WEIGHT = 0.35;
 export const ENEMY_TANK_WEIGHT = 0.05;
 export const BASE_DAMAGE_INTERVAL = 1000; 
 export const LINE_Y_OFFSET = getScaledValue(200);
+
 export const INITIAL_BASE_HEALTH = 2000;
+export const INITIAL_PLAYER_HEALTH = 100;
 
 
 export const HAS_RECOVERY = false;

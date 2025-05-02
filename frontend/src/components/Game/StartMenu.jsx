@@ -2,14 +2,14 @@ import React, { useState, useEffect, useContext } from 'react'; // Added useCont
 import { useNavigate } from 'react-router-dom';
 import { backgroundStart, border, foregroundStart } from '../../assets';
 import HoverSoundButton from '../UI/HoverSoundButton';
-import { AppContext } from '../../App'; // Import context
+import { deleteAccountApi } from '../../utils/api';
 
 
-const StartMenu = ({ setGameActive, handleLogout }) => { 
+const StartMenu = ({ playerData, username, handleLogout, setGameActive, isLoading }) => { 
     const navigate = useNavigate();
-    const { playerData, isLoading } = useContext(AppContext); // Get data from context
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
+    const [isDeleting, setIsDeleting] = useState(false); 
+    const [deleteError, setDeleteError] = useState(null);
     const handleStartGame = () => {
         setGameActive(true);
         navigate('/game');
@@ -24,6 +24,34 @@ const StartMenu = ({ setGameActive, handleLogout }) => {
         // Implement navigation or modal for character screen
         console.log("Navigate to Character Screen (Not Implemented)");
         // navigate('/character');
+    };
+
+    const handleDeleteAccount = async () => {
+        // **Crucial Confirmation Step**
+        const confirmation = window.confirm(
+            "Are you absolutely sure you want to delete your account?\n" +
+            "This action is irreversible and all your progress, currency, and items will be lost forever."
+        );
+
+        if (confirmation) {
+            setIsDeleting(true);
+            setDeleteError(null);
+            console.log("Attempting to delete account...");
+            try {
+                await deleteAccountApi();
+                console.log("Account deleted successfully via API.");
+                // IMPORTANT: Call handleLogout provided by App.js to clear state and redirect
+                handleLogout();
+                // No need to navigate here, handleLogout should do it.
+            } catch (err) {
+                console.error("Failed to delete account:", err);
+                setDeleteError(err.response?.data || "Failed to delete account. Please try again.");
+                setIsDeleting(false); // Stop loading indicator on error
+            }
+            // No finally needed as handleLogout navigates away on success
+        } else {
+            console.log("Account deletion cancelled.");
+        }
     };
 
     useEffect(() => {
@@ -41,7 +69,6 @@ const StartMenu = ({ setGameActive, handleLogout }) => {
     };
 
     if (isLoading || !playerData) {
-        // Optionally show a simplified loading state here or rely on App.js's loading
         return <div>Loading Menu...</div>;
     }
 
@@ -59,20 +86,25 @@ const StartMenu = ({ setGameActive, handleLogout }) => {
                 <div className="content-container">
                     <div className="top">
                         <div className="left">
-                            {/* Logout button */}
-                             <HoverSoundButton className="logout-button" onClick={handleLogout}>
-                                Logout
-                            </HoverSoundButton>
+                           <div className="welcome-message">
+                                Welcome, {username || 'Player'}!!
+                            </div>
                             <div className="currency-display">
-                                {/* Use playerData from context */}
-                                Currency: {playerData?.currency ?? 0}
+                                Money: {playerData?.currency ?? 0}
                             </div>
                         </div>
                         <div className="right">
-                           {/* Auth form removed, handled by AuthPage */}
-                           <div className="welcome-message">
-                                Welcome, {playerData?.username || 'Player'}! {/* Display username if available */}
-                            </div>
+                             <HoverSoundButton className="logout-button" onClick={handleLogout}>
+                                Logout
+                            </HoverSoundButton>
+                            <HoverSoundButton
+                                className="delete-account-button" // Add specific styling if needed
+                                onClick={handleDeleteAccount}
+                                disabled={isDeleting} // Disable while deleting
+                            >
+                                {isDeleting ? 'Deleting...' : 'Delete Account'}
+                            </HoverSoundButton>
+                            {deleteError && <span className="delete-error">{deleteError}</span>}
                         </div>
                     </div>
                     <div className="bottom">

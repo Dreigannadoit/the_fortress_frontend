@@ -1,5 +1,6 @@
 import React from 'react'
 import { RockSpell, rockSpellSound, Slingshot, slingshotSound, WizardWand, wizardWandSound } from '../../assets';
+import { INITIAL_BASE_HEALTH, INITIAL_PLAYER_HEALTH } from '../../constansts/constants';
 
 const InGameStats = ({
     currentWeapon,
@@ -7,9 +8,7 @@ const InGameStats = ({
     isReloading,
     reloadTime,
     playerHealth,
-    playerInitialHealth,
     baseHealth,
-    baseInitialHealth,
     score,
     timeElapsed,
     gameDuration
@@ -18,8 +17,8 @@ const InGameStats = ({
     const minutes = Math.floor(timeLeft / 60000);
     const seconds = Math.floor((timeLeft % 60000) / 1000);
 
-    const playerHealthPercentage = (playerHealth / playerInitialHealth) * 100;
-    const baseHealthPercentage = (baseHealth / baseInitialHealth) * 100;
+    const playerHealthPercentage = (playerHealth / INITIAL_PLAYER_HEALTH) * 100;
+    const baseHealthPercentage = (baseHealth / INITIAL_BASE_HEALTH) * 100;
     return (
         <div className='game_gui '>
             <PlayerGameDisplay playerHealthPercentage={playerHealthPercentage} />

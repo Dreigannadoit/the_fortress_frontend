@@ -187,4 +187,15 @@ public class PlayerDataService {
         playerStatsRepository.save(stats);
         return getPlayerData(username);
     }
+
+    @Transactional // Ensure atomicity
+    public void deleteAccount(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Cannot delete: User not found with username: " + username));
+
+        userRepository.delete(user);
+        // No need to explicitly delete stats/ownerships if cascade is set correctly.
+
+        System.out.println("Deleted account for user: " + username);
+    }
 }

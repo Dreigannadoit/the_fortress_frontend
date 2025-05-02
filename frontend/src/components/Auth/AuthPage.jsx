@@ -1,69 +1,65 @@
 import React, { useState } from 'react';
-import HoverSoundButton from '../UI/HoverSoundButton';
 
 const AuthPage = ({ onLogin, onRegister, error, isLoading }) => {
-    const [isLoginMode, setIsLoginMode] = useState(true);
-    const [formData, setFormData] = useState({ username: '', password: '' });
+    const [isLoginView, setIsLoginView] = useState(true);
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        if (isLoading) return; // Prevent multiple submissions
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (isLoginMode) {
-            onLogin(formData.username, formData.password);
+        if (isLoginView) {
+            onLogin(username, password);
         } else {
-            onRegister(formData.username, formData.password);
+            onRegister(username, password);
         }
     };
 
     return (
         <div className="auth-page-container">
             <div className="auth-form-wrapper">
-                <h2>{isLoginMode ? 'Login' : 'Register'}</h2>
-                {error && <p className="auth-error">{error}</p>}
+                <h2>{isLoginView ? 'Login' : 'Register'}</h2>
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label htmlFor="username">Username</label>
+                        <label htmlFor="username">Username:</label>
                         <input
                             type="text"
                             id="username"
-                            name="username"
-                            value={formData.username}
-                            onChange={handleChange}
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
                             required
-                            disabled={isLoading}
+                            autoComplete="username"
                         />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="password">Password</label>
+                        <label htmlFor="password">Password:</label>
                         <input
                             type="password"
                             id="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={handleChange}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
                             required
-                            disabled={isLoading}
+                            autoComplete={isLoginView ? "current-password" : "new-password"}
                         />
                     </div>
-                    <HoverSoundButton type="submit" className="auth-submit-button" disabled={isLoading}>
-                        {isLoading ? 'Processing...' : (isLoginMode ? 'Login' : 'Register')}
-                    </HoverSoundButton>
+                    {error && <p className="error-message">{error}</p>}
+                    <button type="submit" disabled={isLoading} className="auth-button auth-submit-button ">
+                        {isLoading ? 'Processing...' : (isLoginView ? 'Login' : 'Register')}
+                    </button>
                 </form>
                 <br />
-                <p>
-                    {isLoginMode ? "Don't have an account?" : "Already have an account?"}{' '}
-                    <button onClick={() => setIsLoginMode(!isLoginMode)} className="auth-toggle-button" disabled={isLoading}>
-                        {isLoginMode ? 'Register here' : 'Login here'}
-                    </button>
-                </p>
-                
-                <div className="corner-bottom-left"></div>
-                <div className="corner-bottom-right"></div>
+                <br />
+                <button
+                    onClick={() => setIsLoginView(!isLoginView)}
+                    className="auth-toggle-button"
+                    disabled={isLoading}
+                >
+                    {isLoginView ? 'Need an account? Register' : 'Have an account? Login'}
+                </button>
             </div>
         </div>
     );
 };
+
 export default AuthPage;

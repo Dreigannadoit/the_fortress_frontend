@@ -134,7 +134,29 @@ public class DataInitializer implements CommandLineRunner {
             lifeSteal.setPrice(600);
             lifeSteal.setAvailable(true);
 
-            // Add other skills... thorns, momentum, fastReload
+            GameItem thorns = new GameItem();
+            lifeSteal.setItemId("thorns");
+            lifeSteal.setName("Thorns");
+            lifeSteal.setCategory("skills");
+            lifeSteal.setDescription("Reflect damage to attacker");
+            lifeSteal.setPrice(600);
+            lifeSteal.setAvailable(true);
+
+            GameItem momentum = new GameItem();
+            lifeSteal.setItemId("momentum");
+            lifeSteal.setName("Momentum");
+            lifeSteal.setCategory("skills");
+            lifeSteal.setDescription("Increase speed after not taking damage");
+            lifeSteal.setPrice(600);
+            lifeSteal.setAvailable(true);
+
+            GameItem fastReload = new GameItem();
+            lifeSteal.setItemId("fastReload");
+            lifeSteal.setName("Fast Reload");
+            lifeSteal.setCategory("skills");
+            lifeSteal.setDescription("Faster Reload time for all weapons");
+            lifeSteal.setPrice(600);
+            lifeSteal.setAvailable(true);
 
             // Ultimates
             GameItem dragonsBreath = new GameItem();

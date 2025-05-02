@@ -3,105 +3,155 @@ import { PassiveSkills } from "../../systems/PassiveSkills";
 import Player from "../../entities/Player";
 import Enemy from "../../entities/Enemy";
 import Drone from "../../entities/Drone";
-import { TURRET_CONFIG, ENEMY_SPAWN_COUNT, ENEMY_SPAWN_INTERVAL, BASE_DAMAGE_INTERVAL, INITIAL_BASE_HEALTH, LINE_Y_OFFSET, weapons, ITEM_SPAWN_INTERVAL, ITEM_SPAWN_CHANCE, HAS_FAST_RELAOD, HAS_MOMENTUM, HAS_THORNS, HAS_LIFE_STEAL, HAS_RECOVERY } from "../../constansts/constants";
+import { TURRET_CONFIG, ENEMY_SPAWN_COUNT, ENEMY_SPAWN_INTERVAL, BASE_DAMAGE_INTERVAL, INITIAL_BASE_HEALTH, LINE_Y_OFFSET, weapons as weaponDefinitions, ITEM_SPAWN_INTERVAL, ITEM_SPAWN_CHANCE } from "../../constansts/constants"; // Renamed weapons import
 import calculateDistance from "../../utils/calculateDistance";
 import { getRandomEnemyType } from "../../utils/getRandomEnemyType";
 import { Item } from "../../entities/Item";
-import { background_gameplay_1, background_gameplay_2, floor, fortress, tree_0, tree_1, tree_2 } from "../../assets";
+import { background_gameplay_1, background_gameplay_2, floor, fortress } from "../../assets";
 
+const DEFAULT_PLAYER_HEALTH = 100;
+const DEFAULT_CURRENCY = 0;
+const DEFAULT_LEVEL = 1.0;
+const DEFAULT_KILLS = 0;
+const DEFAULT_WEAPON = 'pistol';
 
-const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
+const useGameEngine = (
+    canvasRef,
+    gameDuration,
+    initialPlayerData, // Data fetched from API via App.js
+    setActiveSkillsAndRefresh
+) => {
     const gunOffset = 24;
-    const INITIAL_PLAYER_HEALTH = 100;
+    const originalInitialData = useRef(initialPlayerData);
 
     // Game state
     const [win, setWin] = useState(false);
     const [gameOver, setGameOver] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [baseHealth, setBaseHealth] = useState(INITIAL_BASE_HEALTH);
-    const [score, setScore] = useState(0);
+    const [score, setScore] = useState(0); // Represents kills during the current game session
     const [timeElapsed, setTimeElapsed] = useState(0);
-    const [enemyScalingFactor, setEnemyScalingFactor] = useState(2);
+    const [enemyScalingFactor, setEnemyScalingFactor] = useState(1); // Start scaling later
     const [currentEnemySpawnCount, setCurrentEnemySpawnCount] = useState(ENEMY_SPAWN_COUNT);
 
-    // Player state
-    const [playerHealth, setPlayerHealth] = useState(INITIAL_PLAYER_HEALTH);
-    const [currentWeaponInfo, setCurrentWeaponInfo] = useState(weapons.pistol);
-    const [currentAmmo, setCurrentAmmo] = useState(weapons.pistol.maxAmmo);
+    // --- Player State (Managed Internally during game) ---
+    const [playerHealth, setPlayerHealth] = useState(DEFAULT_PLAYER_HEALTH);
+    const [currentWeaponInfo, setCurrentWeaponInfo] = useState(weaponDefinitions[DEFAULT_WEAPON]);
+    const [currentAmmo, setCurrentAmmo] = useState(weaponDefinitions[DEFAULT_WEAPON]?.maxAmmo || 15);
     const [isReloading, setIsReloading] = useState(false);
     const [reloadTime, setReloadTime] = useState(0);
+    const [currentCurrencyInGame, setCurrentCurrencyInGame] = useState(DEFAULT_CURRENCY);
+    const [currentLevelInGame, setCurrentLevelInGame] = useState(DEFAULT_LEVEL);
+
+    // --- Active Skills (Reflects API state, managed via toggleSkill) ---
+    const [passiveSkills, setPassiveSkills] = useState({}); // Initialized from initialPlayerData later
+
+    // --- Other State ---
     const [itemSpawnTimer, setItemSpawnTimer] = useState(0);
     const [spritesLoaded, setSpritesLoaded] = useState(false);
-    const [passiveSkills, setPassiveSkills] = useState({
-        recovery: true,
-        lifeSteal: HAS_LIFE_STEAL,
-        thorns: HAS_THORNS,
-        momentum: HAS_MOMENTUM,
-        fastReload: HAS_FAST_RELAOD
-    });
-
-    const [screenShake, setScreenShake] = useState({
-        offsetX: 0,
-        offsetY: 0,
-        active: false,
-        endTime: 0,
-        intensity: 0
-    });
-
-
-    const [maxDrones, setMaxDrones] = useState(6);
+    const [screenShake, setScreenShake] = useState({ offsetX: 0, offsetY: 0, active: false, endTime: 0, intensity: 0 });
+    const [maxDrones, setMaxDrones] = useState(4);
     const [isMusicPlaying, setIsMusicPlaying] = useState(false);
-    const [musicVolume, setMusicVolume] = useState(0.5); // Default volume (0-1)
+    const [musicVolume, setMusicVolume] = useState(0.5);
 
-
-    // Refs for game objects
-    const lastConvertedScore = useRef(0);
+    // --- Refs ---
+    const playerRef = useRef(null);
+    const lastConvertedScoreCurrency = useRef(0); // Tracks score conversion point for currency
     const currentTrackIndex = useRef(0);
     const audioRef = useRef(null);
-
-    const playerRef = useRef(null);
-    const playerSpriteRefs = {
-        front_0: useRef(null),
-        front_1: useRef(null),
-        front_2: useRef(null),
-        front_3: useRef(null),
-        back_0: useRef(null),
-        back_1: useRef(null),
-        back_2: useRef(null),
-        back_3: useRef(null),
+    const playerSpriteRefs = { // Use direct refs
+        front_0: useRef(null), front_1: useRef(null), front_2: useRef(null), front_3: useRef(null),
+        back_0: useRef(null), back_1: useRef(null), back_2: useRef(null), back_3: useRef(null),
     };
-
-    const screenShakeRef = useRef({
-        offsetX: 0,
-        offsetY: 0,
-        active: false,
-        endTime: 0,
-        intensity: 0,
-        duration: 0
-    });
-
+    const screenShakeRef = useRef({ offsetX: 0, offsetY: 0, active: false, endTime: 0, intensity: 0, duration: 0 });
     const drones = useRef([]);
-    const turrets = useRef([
+    const turrets = useRef([ // TODO: Initialize based on owned turrets? Or are they placed in-game?
         { x: 150, y: null, angle: 0, targetEnemy: null, lastFireTime: 0 },
         { x: null, y: null, angle: 0, targetEnemy: null, lastFireTime: 0 }
     ]);
     const bullets = useRef([]);
     const enemies = useRef([]);
     const items = useRef([]);
-
-    // Add enemy sprite refs
     const enemySpriteRefs = useRef({
         normal: Array(4).fill().map(() => ({ current: null })),
         fast: Array(4).fill().map(() => ({ current: null })),
         tank: Array(8).fill().map(() => ({ current: null }))
     });
-
     const mousePos = useRef({ x: 0, y: 0 });
     const keys = useRef({ w: false, a: false, s: false, d: false, spacebar: false });
     const mouseDown = useRef(false);
-    const passiveSkillsRef = useRef(passiveSkills);
+    const passiveSkillsRef = useRef(passiveSkills); // Ref for use inside callbacks without dependency issues
     const bottomSpriteImage = useRef(null);
     const backgroundImageRef = useRef(null);
+    const cursorImageRef = useRef(null);
+    // --- Initialize Engine State from initialPlayerData ---
+
+    useEffect(() => {
+        // Store the *first* set of data received for resets
+        if (!originalInitialData.current && initialPlayerData) {
+            originalInitialData.current = JSON.parse(JSON.stringify(initialPlayerData)); // Deep copy
+        }
+
+        if (initialPlayerData) {
+            console.log("Initializing engine with Player Data:", initialPlayerData);
+            setCurrentCurrencyInGame(initialPlayerData.currency ?? DEFAULT_CURRENCY);
+            setCurrentLevelInGame(initialPlayerData.level ?? DEFAULT_LEVEL);
+
+            // Initialize player health (usually full at start of game instance)
+            setPlayerHealth(DEFAULT_PLAYER_HEALTH);
+
+            // Map activeSkillIds array to the boolean object format used by the engine
+            const activeSkillsMap = {};
+            Object.keys(PassiveSkills).forEach(key => { // Assuming PassiveSkills keys match item IDs
+                activeSkillsMap[key] = initialPlayerData.activeSkills?.includes(key) ?? false;
+            });
+            setPassiveSkills(activeSkillsMap);
+            passiveSkillsRef.current = activeSkillsMap; // Update ref immediately
+
+            // Set initial weapon in the player instance and update UI state
+            const initialWeaponName = initialPlayerData.currentWeapon || DEFAULT_WEAPON;
+            // Ensure weaponDefinitions has the weapon
+            if (weaponDefinitions[initialWeaponName]) {
+                if (playerRef.current) {
+                    // Only switch if the weapon is different or player just initialized
+                    if (playerRef.current.getCurrentWeaponInfo().name !== initialWeaponName) {
+                        playerRef.current.switchWeapon(initialWeaponName);
+                    }
+                }
+                // Update engine's view of the weapon
+                const weaponInfo = weaponDefinitions[initialWeaponName];
+                setCurrentWeaponInfo({ ...weaponInfo }); // Use copy
+                setCurrentAmmo(weaponInfo.maxAmmo);
+                setIsReloading(false);
+                setReloadTime(0);
+            } else {
+                console.warn(`Initial weapon "${initialWeaponName}" not found in definitions. Defaulting to pistol.`);
+                if (playerRef.current && playerRef.current.getCurrentWeaponInfo().name !== DEFAULT_WEAPON) {
+                    playerRef.current.switchWeapon(DEFAULT_WEAPON);
+                }
+                const defaultWeaponInfo = weaponDefinitions[DEFAULT_WEAPON];
+                setCurrentWeaponInfo({ ...defaultWeaponInfo });
+                setCurrentAmmo(defaultWeaponInfo.maxAmmo);
+            }
+
+            // Initialize player ref *after* setting initial weapon info potentially
+            if (!playerRef.current) {
+                playerRef.current = new Player(
+                    window.innerWidth / 2,
+                    window.innerHeight / 2,
+                    DEFAULT_PLAYER_HEALTH // Start game with full health
+                );
+                // Switch to the correct initial weapon if player was just created
+                playerRef.current.switchWeapon(initialWeaponName);
+            }
+
+
+        } else {
+            console.log("Waiting for initial player data...");
+            // Handle state if initialPlayerData is null (e.g., show loading in Game component)
+        }
+
+    }, [initialPlayerData]);
 
     // Initialize player
     useEffect(() => {
@@ -168,27 +218,68 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
         });
     }, []);
 
-    const cursorImage = new Image();
-    cursorImage.src = 'src/assets/cursor.png'; 
+    useEffect(() => {
+        cursorImageRef.current = new Image();
+        cursorImageRef.current.src = 'src/assets/cursor.png';
+        cursorImageRef.current.onerror = () => console.error("Failed to load cursor image");
+    }, []);
+    useEffect(() => {
+        backgroundImageRef.current = new Image();
+        backgroundImageRef.current.src = floor;
+        backgroundImageRef.current.onerror = () => console.error('Failed to load background image');
+    }, []);
+    useEffect(() => {
+        bottomSpriteImage.current = new Image();
+        bottomSpriteImage.current.src = fortress;
+        bottomSpriteImage.current.onerror = () => console.error('Failed to load fortress image');
+    }, []);
 
-    // Update the enemy kill reward to modify playerData directly:
-    const handleEnemyKilled = useCallback((enemy) => {
-        setScore(prev => {
-            const newScore = prev + enemy.score;
-            // Calculate currency based on total score, not just enemy.score
-            const currencyToAdd = Math.floor(newScore / 2) - Math.floor(lastConvertedScore.current / 2);
+    // --- API Interaction Callbacks ---
+    const toggleSkill = useCallback(async (skillId) => {
+        if (!setActiveSkillsAndRefresh || !originalInitialData.current) return; // Need original data for ownership check
 
-            if (currencyToAdd > 0) {
-                setPlayerData(prevData => ({
-                    ...prevData,
-                    currency: prevData.currency + currencyToAdd
-                }));
-                lastConvertedScore.current = newScore;
+        const currentSkillsArray = Object.entries(passiveSkillsRef.current).filter(([, a]) => a).map(([k]) => k);
+        let nextSkillsArray;
+        const isCurrentlyActive = currentSkillsArray.includes(skillId);
+
+        if (isCurrentlyActive) {
+            nextSkillsArray = currentSkillsArray.filter(id => id !== skillId);
+        } else {
+            // Check ownership from the *original* data before activating
+            const ownedCategory = Object.keys(originalInitialData.current.ownedItems).find(category =>
+                 originalInitialData.current.ownedItems[category]?.includes(skillId)
+            );
+            if (ownedCategory) { // Check if the skill ID exists in any owned category
+                 nextSkillsArray = [...currentSkillsArray, skillId];
+            } else {
+                 console.warn(`Attempted to activate unowned item: ${skillId}`);
+                 return;
             }
+        }
 
-            return newScore;
-        });
-    }, [setPlayerData]);
+        // Optimistic UI update
+        setPassiveSkills(prev => ({ ...prev, [skillId]: !prev[skillId] }));
+
+        try {
+            await setActiveSkillsAndRefresh(nextSkillsArray);
+        } catch (error) {
+            console.error(`Failed to toggle skill ${skillId} via API:`, error);
+            // Revert UI on failure
+            setPassiveSkills(prev => ({ ...prev, [skillId]: !prev[skillId] }));
+            // Show error to user
+        }
+    }, [setActiveSkillsAndRefresh]); 
+
+    // Update currency earned during the game session
+    const handleEnemyKilled = useCallback((enemy) => {
+        const newScore = score + enemy.score;
+        setScore(newScore);
+        const scoreBasedCurrencyGain = Math.floor(newScore / 2) - Math.floor(lastConvertedScoreCurrency.current / 2);
+        if (scoreBasedCurrencyGain > 0) {
+            setCurrentCurrencyInGame(prev => prev + scoreBasedCurrencyGain);
+            lastConvertedScoreCurrency.current = newScore;
+        }
+    }, [score, currentCurrencyInGame]);// Depend on internal state
 
     const spawnItem = useCallback(() => {
         if (Math.random() < ITEM_SPAWN_CHANCE) {
@@ -361,111 +452,155 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
         }
     }, [createBullet]);
 
+    const handleWeaponFire = useCallback(() => {
+        if (isPaused || !playerRef.current) return;
+        const player = playerRef.current;
+
+        const fired = player.attemptFire(mousePos.current, createBulletsCallbackForPlayer);
+        if (fired || player.isReloading()) { // Update state if fire attempted or reload started
+            setCurrentAmmo(player.getCurrentAmmo());
+            setIsReloading(player.isReloading());
+            setReloadTime(player.getReloadTimeRemaining());
+        }
+    }, [isPaused, createBulletsCallbackForPlayer]);
+
     const handlePlayerDamage = useCallback((damage, attacker) => {
         const player = playerRef.current;
         if (!player) return;
-
         if (player.canTakeDamage()) {
+            // Access skills via ref inside callback
             PassiveSkills.thorns(damage, attacker, passiveSkillsRef.current.thorns);
             if (player.takeDamage(damage)) {
-                setGameOver(true);
+                setGameOver(true); // Trigger game over state
             }
+            setPlayerHealth(player.getHealth()); // Update health state
         }
-        setPlayerHealth(player.getHealth());
     }, []);
 
     const handleRestart = useCallback(() => {
-        // Clear all enemy damage intervals first
+        console.log("Restarting game...");
+        // Clear intervals associated with enemies
         enemies.current.forEach(enemy => {
-            if (enemy.damageInterval) {
-                clearInterval(enemy.damageInterval);
-                enemy.damageInterval = null;
-            }
+            if (enemy.damageInterval) clearInterval(enemy.damageInterval);
+            enemy.damageInterval = null;
         });
 
-        // Reset all state variables
+        // Reset game state variables
         setWin(false);
         setGameOver(false);
-        setBaseHealth(INITIAL_BASE_HEALTH);
-        setScore(0);
+        setScore(0); // Reset session score
         setTimeElapsed(0);
-        setEnemyScalingFactor(1);
-        setCurrentEnemySpawnCount(ENEMY_SPAWN_COUNT);
-        items.current = [];
-        setItemSpawnTimer(0);
+        setEnemyScalingFactor(1); // Reset scaling
+        setCurrentEnemySpawnCount(ENEMY_SPAWN_COUNT); // Reset spawn count
+        setBaseHealth(INITIAL_BASE_HEALTH); // Reset base health
 
-        // Reset player state
+        // Reset internal tracking
+        lastConvertedScoreCurrency.current = 0;
+
+        // Reset game objects
+        items.current = [];
+        bullets.current = [];
+        enemies.current = [];
+        drones.current = []; // TODO: Reinitialize drones based on initial data?
+        turrets.current = [ // Reset turrets to default placement
+            { x: 150, y: null, angle: 0, targetEnemy: null, lastFireTime: 0 },
+            { x: null, y: null, angle: 0, targetEnemy: null, lastFireTime: 0 }
+        ];
+
+        // Reset player state using the *original* data passed when the component mounted
+        const originalData = originalInitialData.current || initialPlayerData; // Fallback just in case
         if (playerRef.current) {
-            playerRef.current.reset(window.innerWidth / 2, window.innerHeight / 2);
-            setPlayerHealth(playerRef.current.getHealth());
-            setCurrentWeaponInfo(playerRef.current.getCurrentWeaponInfo());
-            setCurrentAmmo(playerRef.current.getCurrentAmmo());
+            playerRef.current.reset(window.innerWidth / 2, window.innerHeight / 2, DEFAULT_PLAYER_HEALTH);
+            setPlayerHealth(DEFAULT_PLAYER_HEALTH);
+
+            const initialWeaponName = originalData?.currentWeapon || DEFAULT_WEAPON;
+            if (weaponDefinitions[initialWeaponName]) {
+                playerRef.current.switchWeapon(initialWeaponName);
+                setCurrentWeaponInfo({ ...weaponDefinitions[initialWeaponName] });
+                setCurrentAmmo(weaponDefinitions[initialWeaponName].maxAmmo);
+            } else {
+                playerRef.current.switchWeapon(DEFAULT_WEAPON);
+                setCurrentWeaponInfo({ ...weaponDefinitions[DEFAULT_WEAPON] });
+                setCurrentAmmo(weaponDefinitions[DEFAULT_WEAPON].maxAmmo);
+            }
+
             setIsReloading(false);
             setReloadTime(0);
         }
 
-        // Reset game objects
-        turrets.current = [
-            { x: 50, y: null, angle: 0, targetEnemy: null, lastFireTime: 0 },
-            { x: null, y: null, angle: 0, targetEnemy: null, lastFireTime: 0 }
-        ];
-        bullets.current = [];
-        enemies.current = [];
-        drones.current = [];
+        // Reset internal currency/level to what they were initially for this game mount
+        setCurrentCurrencyInGame(originalData?.currency ?? DEFAULT_CURRENCY);
+        setCurrentLevelInGame(originalData?.level ?? DEFAULT_LEVEL);
+
+        // Reset skills state based on original data
+        const activeSkillsMap = {};
+        Object.keys(PassiveSkills).forEach(key => {
+            activeSkillsMap[key] = originalData?.activeSkills?.includes(key) ?? false;
+        });
+        setPassiveSkills(activeSkillsMap);
+        // passiveSkillsRef updated via useEffect
+
 
         // Reset input states
         keys.current = { w: false, a: false, s: false, d: false, spacebar: false };
         mouseDown.current = false;
-        mousePos.current = { x: 0, y: 0 };
-        lastConvertedScore.current = 0;
-    }, [INITIAL_BASE_HEALTH]);
+
+        // Stop music? Or let it continue/restart? Handled by playBackgroundMusic useEffect
+        setIsPaused(false); // Ensure game is not paused after restart
+
+
+    }, [initialPlayerData]);
 
     const cleanupGame = useCallback(() => {
-        handleRestart();
-    }, [handleRestart]);
+        enemies.current.forEach(enemy => { if (enemy.damageInterval) clearInterval(enemy.damageInterval); });
+        if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+        enemies.current = []; bullets.current = []; items.current = []; drones.current = []; turrets.current = [];
+        playerRef.current = null;
+    }, []);
+
+    // --- Get Final Game State for Saving ---
+    const getFinalGameState = useCallback(() => {
+        const levelFromScore = Math.floor(score / 100);
+        const originalLevel = originalInitialData.current?.level ?? DEFAULT_LEVEL;
+        const finalLevel = Math.max(currentLevelInGame, originalLevel) + levelFromScore;
+        const activeSkillIds = Object.entries(passiveSkills).filter(([, a]) => a).map(([k]) => k);
+        return {
+            currency: currentCurrencyInGame,
+            level: finalLevel,
+            kills: score,
+            currentWeaponName: playerRef.current?.getCurrentWeaponInfo().name || DEFAULT_WEAPON,
+            activeSkillIds: activeSkillIds,
+        };
+    }, [score, currentCurrencyInGame, currentLevelInGame, passiveSkills]);
 
     // Input handlers
-    const handleMouseMove = useCallback((e) => {
-        mousePos.current = { x: e.clientX, y: e.clientY };
-    }, []);
+    const handleMouseMove = useCallback((e) => { mousePos.current = { x: e.clientX, y: e.clientY }; }, []);
 
-    const handleWeaponFire = useCallback(() => {
-        if (isPaused) return; // Add this line
-        const player = playerRef.current;
-        if (!player) return;
+    const handleMouseDown = useCallback((e) => { if (!isPaused) { mouseDown.current = true; if (playerRef.current && !playerRef.current.getCurrentWeaponInfo().isAutomatic) { handleWeaponFire(); } } }, [isPaused, handleWeaponFire]);
 
-        player.attemptFire(mousePos.current, createBulletsCallbackForPlayer);
-        setCurrentAmmo(player.getCurrentAmmo());
-        setIsReloading(player.isReloading());
-        setReloadTime(player.getReloadTimeRemaining());
-    }, [createBulletsCallbackForPlayer, isPaused]);
+    const handleMouseUp = useCallback(() => { mouseDown.current = false; }, []);
 
-    const handleMouseDown = useCallback((e) => {
-        if (isPaused) return; // Add this line
-        mouseDown.current = true;
-        const player = playerRef.current;
-        if (player && !player.getCurrentWeaponInfo().isAutomatic) {
-            handleWeaponFire();
-        }
-    }, [handleWeaponFire, isPaused]);
-
-    const handleMouseUp = useCallback(() => {
-        mouseDown.current = false;
-    }, []);
-
+    // Weapon switching now only affects internal player state
     const handleWeaponSwitch = useCallback((weaponName) => {
-        const player = playerRef.current;
-        if (!player) return;
-
-        player.switchWeapon(weaponName);
-        const newWeaponInfo = player.getCurrentWeaponInfo();
-        setCurrentWeaponInfo(newWeaponInfo);
-        setCurrentAmmo(player.getCurrentAmmo());
-        setIsReloading(player.isReloading());
-        setReloadTime(player.getReloadTimeRemaining());
-    }, []);
+        // Check ownership against the *original* data for this session
+       const ownedWeapons = originalInitialData.current?.ownedItems?.weapons || [DEFAULT_WEAPON];
+       if (!ownedWeapons.includes(weaponName)) {
+            console.warn(`Attempted switch to unowned weapon: ${weaponName}`); return;
+       }
+       if (playerRef.current) {
+           playerRef.current.switchWeapon(weaponName);
+           const newInfo = playerRef.current.getCurrentWeaponInfo();
+           if(weaponDefinitions[newInfo.name]){
+                setCurrentWeaponInfo({ ...weaponDefinitions[newInfo.name] });
+                setCurrentAmmo(playerRef.current.getCurrentAmmo());
+                setIsReloading(playerRef.current.isReloading());
+                setReloadTime(playerRef.current.getReloadTimeRemaining());
+           }
+       }
+   }, [initialPlayerData]);
 
     const handleKeyDown = useCallback((e) => {
+        if (!playerRef.current) return; // Don't handle keys if player doesn't exist
         const key = e.key.toLowerCase();
         if (keys.current.hasOwnProperty(key)) keys.current[key] = true;
 
@@ -473,17 +608,16 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
             case '1': handleWeaponSwitch('pistol'); break;
             case '2': handleWeaponSwitch('shotgun'); break;
             case '3': handleWeaponSwitch('machinegun'); break;
+            // Add cases for other owned weapons if necessary
             case 'r':
-                playerRef.current?.startReload();
-                setIsReloading(playerRef.current?.isReloading() ?? false);
-                setReloadTime(playerRef.current?.getReloadTimeRemaining() ?? 0);
+                playerRef.current.startReload();
+                setIsReloading(playerRef.current.isReloading());
+                setReloadTime(playerRef.current.getReloadTimeRemaining());
                 break;
-            case 'escape':
+            case 'escape': // Toggle pause
                 setIsPaused(prev => !prev);
                 break;
-            case 'p':  // Add alternative pause/resume key
-                setIsPaused(prev => !prev);
-                break;
+            // Add other keybinds if needed (e.g., activate ultimate?)
             default: break;
         }
     }, [handleWeaponSwitch]);
@@ -492,6 +626,7 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
         const key = e.key.toLowerCase();
         if (keys.current.hasOwnProperty(key)) keys.current[key] = false;
     }, []);
+
 
     const applyScreenShake = useCallback((intensity = 5, duration = 200) => {
         const newShake = {
@@ -608,7 +743,6 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
         return () => clearInterval(spawnCountInterval);
     }, [win, gameOver, isPaused]);
 
-
     // Make neemies harder to defeat
     useEffect(() => {
         if (win || gameOver || isPaused) return;
@@ -618,9 +752,15 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
         return () => clearInterval(scalingInterval);
     }, [win, gameOver, isPaused]);
 
-    // Main game loop
+    // =============================
+    // === Main Game Loop Effect ===
+    // =============================
     useEffect(() => {
-        if (!canvasRef.current || !playerRef.current) return;
+        if (!canvasRef.current || !playerRef.current || !spritesLoaded || !initialPlayerData) {
+            console.log("Game loop waiting for initialization...");
+            return; // Don't start the loop yet
+        }
+        console.log("Starting game loop...");
 
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
@@ -628,56 +768,28 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
         let enemySpawnIntervalId;
 
         const spawnEnemy = () => {
-            if (isPaused || win || gameOver || !canvasRef.current) return;
+            if (isPaused || win || gameOver || !canvasRef.current) return; // Check canvas again
 
-            const canvas = canvasRef.current;
             const spawnZoneWidth = canvas.width * 0.1;
             const minX = spawnZoneWidth;
-            const maxX = canvas.width - (spawnZoneWidth + 0.05 * canvas.width);
-            const cellSize = 200; // Grid cell size
-            const grid = {};
+            const maxX = canvas.width - (spawnZoneWidth + (0.05 * canvas.width)); // Adjusted slightly
             const newEnemies = [];
 
-            // Helper function to get grid key
-            const getGridKey = (x, y) => `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)}`;
-
-            // Mark existing enemies in grid
-            enemies.current.forEach(enemy => {
-                const key = getGridKey(enemy.x, enemy.y);
-                grid[key] = true;
-            });
-
-            // Use currentEnemySpawnCount instead of ENEMY_SPAWN_COUNT
             for (let i = 0; i < currentEnemySpawnCount; i++) {
                 const type = getRandomEnemyType();
-                const y = -100;
-                let x;
-                let validPosition = false;
-                let attempts = 0;
+                // Calculate random X within the allowed horizontal range
+                const x = Math.random() * (maxX - minX) + minX;
+                const y = -100; // Start above the screen
 
-                while (!validPosition && attempts < 10) {
-                    attempts++;
-                    x = Math.random() * (maxX - minX) + minX;
-                    const key = getGridKey(x, y);
-
-                    if (!grid[key]) {
-                        validPosition = true;
-                        grid[key] = true; // Mark this cell as occupied
-                    }
-                }
-
-                if (validPosition) {
-                    const enemy = new Enemy(x, y, type, enemyScalingFactor);
-                    enemy.setSpriteRefs(enemySpriteRefs.current[type]);
-                    newEnemies.push(enemy);
-                }
+                const enemy = new Enemy(x, y, type, enemyScalingFactor);
+                enemy.setSpriteRefs(enemySpriteRefs.current[type]); // Ensure sprites are loaded/passed
+                newEnemies.push(enemy);
             }
-
             enemies.current.push(...newEnemies);
         };
 
         const updateGame = () => {
-            if (isPaused || !ctx || !canvas) {
+            if (isPaused || !ctx || !canvas || !playerRef.current) { // Check playerRef too
                 animationFrameId = requestAnimationFrame(updateGame);
                 return;
             }
@@ -694,19 +806,11 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
                 canvas.height + Math.abs(offsetY) * 2
             );
 
-            // Save context before applying transformations
             ctx.save();
-
             // Apply screen shake if active
-            if (screenShakeRef.current.active) {
-                ctx.translate(offsetX, offsetY);
-            }
-            ctx.fillStyle = 'white';
-            ctx.font = '16px Arial';
-            ctx.fillText(`Shake: X:${screenShake.offsetX.toFixed(1)} Y:${screenShake.offsetY.toFixed(1)}`, 500, 30);
+            if (screenShakeRef.current.active) ctx.translate(offsetX, offsetY);
 
-            // Update and draw all game objects here...
-            drawBackground();
+            // --- Updates ---
             updatePlayer();
             updateEnemies();
             updateBullets();
@@ -714,6 +818,8 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
             updateDrones();
             updateItems();
 
+            // --- Draws ---
+            drawBackground();
             drawEnvironment();
             drawItems();
             drawPlayer();
@@ -736,18 +842,13 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
             const player = playerRef.current;
             if (!player || isPaused) return;
 
-            // Handle automatic weapon firing
+            // Automatic fire
             const weaponInfo = player.getCurrentWeaponInfo();
-            if (weaponInfo.isAutomatic && mouseDown.current) {
-                const fired = player.attemptFire(mousePos.current, createBulletsCallbackForPlayer);
-                if (fired || player.isReloading()) {
-                    setCurrentAmmo(player.getCurrentAmmo());
-                    setIsReloading(player.isReloading());
-                    setReloadTime(player.getReloadTimeRemaining());
-                }
+            if (weaponDefinitions[weaponInfo.name]?.isAutomatic && mouseDown.current) { // Check definition
+                handleWeaponFire(); // Use the unified fire handler
             }
 
-            // Handle reloading
+            // Reload update
             const reloadFinished = player.updateReload(Date.now());
             if (reloadFinished) {
                 setCurrentAmmo(player.getCurrentAmmo());
@@ -757,7 +858,7 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
                 setReloadTime(player.getReloadTimeRemaining());
             }
 
-            // Apply passive skills
+            // Apply passive skills using the ref for current state
             if (passiveSkillsRef.current.recovery) {
                 const prevHealth = player.getHealth();
                 PassiveSkills.recovery(player, true);
@@ -765,101 +866,53 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
                     setPlayerHealth(player.getHealth());
                 }
             }
-
-            // Update player movement
-            const speedModifier = passiveSkillsRef.current.momentum ?
-                PassiveSkills.momentum(player, true) : 1.0;
+            const speedModifier = passiveSkillsRef.current.momentum ? PassiveSkills.momentum(player, true) : 1.0;
             player.setSpeedModifier(speedModifier);
+
+
             player.update(keys.current, { width: canvas.width, height: canvas.height });
         };
 
         const updateEnemies = () => {
             const lineY = canvas.height - LINE_Y_OFFSET;
             enemies.current = enemies.current.filter((enemy) => {
-                if (isPaused) return true;
+                if (isPaused || !playerRef.current) return true;
 
-                // Update enemy position
-                enemy.x += enemy.velocity.x;
-                enemy.y += enemy.velocity.y;
-                enemy.velocity.x *= 0.9;
-                enemy.velocity.y *= 0.9;
+                // *** Call Enemy's own update method ***
+                enemy.update(playerRef.current, canvas, lineY);
 
-                const maxY = lineY - enemy.size;
-
-                // Behavior-specific updates
-                if (enemy.type === 'fast') {
-                    const playerPos = playerRef.current.getPosition();
-                    const distToPlayer = calculateDistance(playerPos.x, playerPos.y, enemy.x, enemy.y);
-
-                    // Always move toward player
-                    if (distToPlayer > 0) {
-                        enemy.velocity.x += ((playerPos.x - enemy.x) / distToPlayer) * enemy.speed * 0.1;
-                        enemy.velocity.y += ((playerPos.y - enemy.y) / distToPlayer) * enemy.speed * 0.1;
-                    }
-
-                    // Clamp fast enemy from passing maxY
-                    if (enemy.y > maxY) {
-                        enemy.y = maxY;
-                        enemy.velocity.y = 0;
-                    }
-
-                } else { // Normal and Tank enemies
-                    if (enemy.y < maxY) enemy.isStopped = false;
-                    if (!enemy.isStopped) enemy.y += enemy.speed;
-                    if (enemy.y > maxY) {
-                        enemy.y = maxY;
-                        enemy.isStopped = true;
-                        if (!enemy.damageInterval && baseHealth > 0 && !isPaused) {
-                            enemy.damageInterval = setInterval(() => {
-                                if (win || gameOver || isPaused || !enemies.current.includes(enemy)) {
-                                    clearInterval(enemy.damageInterval);
-                                    enemy.damageInterval = null;
-                                    return;
-                                }
-                                setBaseHealth(prev => Math.max(0, prev - enemy.damage));
-                            }, BASE_DAMAGE_INTERVAL);
+                // *** Game Logic interacting with enemy state ***
+                // Start damaging base if stopped at the line
+                if (enemy.isStopped && !enemy.damageInterval && baseHealth > 0) {
+                    enemy.damageInterval = setInterval(() => {
+                        if (win || gameOver || isPaused || !enemies.current.includes(enemy)) {
+                            clearInterval(enemy.damageInterval);
+                            enemy.damageInterval = null;
+                            return;
                         }
-                    }
+                        setBaseHealth(prev => Math.max(0, prev - enemy.damage));
+                    }, BASE_DAMAGE_INTERVAL);
                 }
+                // Clear interval if enemy starts moving again (e.g., knockback)
+                 else if (!enemy.isStopped && enemy.damageInterval) {
+                     clearInterval(enemy.damageInterval);
+                     enemy.damageInterval = null;
+                 }
 
-                // Boundary check
-                enemy.x = Math.max(0, Math.min(canvas.width - enemy.size, enemy.x));
 
-                // Check for collisions with bullets
-                let hitByBullet = false;
+                // --- Collision Checks ---
+                let killedByBullet = false;
                 bullets.current = bullets.current.filter((bullet) => {
                     if (checkCollision(bullet, enemy)) {
-                        // Trigger screen shake based on weapon type
-                        const shakeIntensity =
-                            bullet.weaponType === 'shotgun' ? 4 :
-                                bullet.weaponType === 'pistol' ? 1.5 :
-                                    bullet.weaponType === 'machinegun' ? 2 : 1;
-                        applyScreenShake(shakeIntensity, 500);
+                        applyScreenShake(/* Intensity based on bullet.weaponType */);
+                        const knockbackAngle = bullet.angle ?? Math.atan2(bullet.y - (enemy.y + enemy.size/2), bullet.x - (enemy.x + enemy.size/2));
+                        const killed = enemy.takeDamage(bullet.damage, weaponDefinitions[bullet.weaponType]?.recoilForce || 1, knockbackAngle);
 
-                        const knockbackForce =
-                            bullet.weaponType === 'shotgun' ? 14 :
-                                bullet.weaponType === 'pistol' ? 3 :
-                                    bullet.weaponType === 'machinegun' ? 2 :
-                                        bullet.weaponType === 'turret' ? 1 : 0;
-
-                        const angle = bullet.angle ?? Math.atan2(
-                            bullet.y - (enemy.y + enemy.size / 2),
-                            bullet.x - (enemy.x + enemy.size / 2)
-                        );
-
-
-                        const enemyKilledByThisHit = enemy.takeDamage(bullet.damage, knockbackForce, angle);
-
-                        if (enemyKilledByThisHit) {
-                            hitByBullet = true;
-                            setScore(prev => prev + enemy.score);
+                        if (killed) {
+                            killedByBullet = true;
                             handleEnemyKilled(enemy);
-                            setPlayerCurrency(prev => prev + Math.floor(enemy.score / 2));
-
-                            // Life steal effect
-                            const damageDealt = Math.min(bullet.damage, enemy.health);
-                            const healAmount = PassiveSkills.lifeSteal(damageDealt, passiveSkillsRef.current.lifeSteal);
-                            if (healAmount > 0) {
+                            const healAmount = PassiveSkills.lifeSteal(bullet.damage, passiveSkillsRef.current.lifeSteal);
+                            if (healAmount > 0 && playerRef.current) {
                                 playerRef.current.heal(healAmount);
                                 setPlayerHealth(playerRef.current.getHealth());
                             }
@@ -869,33 +922,24 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
                     return true; // Keep bullet
                 });
 
-                // Check for collisions with player
                 if (checkPlayerCollision(enemy)) {
                     handlePlayerDamage(enemy.damage, enemy);
                     const knockbackAngle = Math.atan2(enemy.y - playerRef.current.y, enemy.x - playerRef.current.x);
-                    enemy.applyKnockback(15, knockbackAngle);
+                    enemy.applyKnockback(15, knockbackAngle + Math.PI); // Knock away from player
                 }
 
-                // Remove dead enemies
+                // --- Cleanup ---
                 if (enemy.health <= 0) {
-                    if (enemy.damageInterval) {
-                        clearInterval(enemy.damageInterval);
-                        enemy.damageInterval = null;
-                    }
-                    if (!hitByBullet) setScore(prev => prev + enemy.score);
-                    return false;
+                    if (enemy.damageInterval) clearInterval(enemy.damageInterval);
+                    if (!killedByBullet) handleEnemyKilled(enemy); // Score if killed by other means
+                    // TODO: Play death sound, spawn explosion/particles
+                    return false; // Remove enemy
                 }
-
-                return true;
+                return true; // Keep enemy
             });
         };
 
-        const updateItems = () => {
-            items.current = items.current.filter(item => {
-                item.update();
-                return !item.collected;
-            });
-        };
+        const updateItems = () => { checkItemCollisions(); items.current.forEach(i => i.update()); }; 
 
         const updateBullets = () => {
             bullets.current = bullets.current.filter((bullet) => {
@@ -986,56 +1030,14 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
             });
         };
 
-        const drawBackground = () => {
-            if (!backgroundImageRef.current || !backgroundImageRef.current.complete) return;
-
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-
-            const ctx = canvas.getContext('2d');
-
-            // Draw the background image to cover the entire canvas
-            ctx.drawImage(
-                backgroundImageRef.current,
-                0, 0,                          // Source X, Y
-                backgroundImageRef.current.width, backgroundImageRef.current.height, // Source width, height
-                0, 0,                          // Destination X, Y
-                canvas.width, canvas.height     // Destination width, height
-            );
-        };
-
-        const drawItems = () => {
-            items.current.forEach(item => item.draw(ctx));
-        };
-
-        const drawPlayer = () => {
-            const player = playerRef.current;
-            if (!player) return;
-
-            // Default weapon key
-            const defaultWeapon = "pistol";
-
-            // Get the appropriate sprite based on current weapon
-            let currentSprite = playerSpriteRefs[player.currentWeaponType]?.current;
-
-            if (!currentSprite) {
-                currentSprite = playerSpriteRefs[defaultWeapon]?.current;
-            }
-
-            // console.log("Current player weapon:", player.currentWeaponType);
-
-            player.draw(ctx, mousePos.current, playerSpriteRefs);
-        };
-
-        const drawEnemies = () => {
-            enemies.current.forEach(enemy => {
-                enemy.draw(ctx);
-            });
-        };
+        const drawBackground = () => { if (backgroundImageRef.current?.complete) ctx.drawImage(backgroundImageRef.current, 0, 0, canvas.width, canvas.height); };
+        const drawItems = () => { items.current.forEach(item => item.draw(ctx)); };
+        const drawPlayer = () => { playerRef.current?.draw(ctx, mousePos.current, playerSpriteRefs); };
+        const drawEnemies = () => { enemies.current.forEach(enemy => enemy.draw(ctx)); };
 
         const drawCursor = () => {
             const player = playerRef.current;
-            if (!player || !mousePos.current || !cursorImage.complete) return;
+            if (!player || !mousePos.current || !cursorImageRef.current?.complete) return;
         
             const playerPos = player.getPosition();
             const angle = Math.atan2(mousePos.current.y - playerPos.y, mousePos.current.x - playerPos.x);
@@ -1070,7 +1072,7 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
             ctx.globalCompositeOperation = "difference";
         
             const size = 32;
-            ctx.drawImage(cursorImage, -size / 2, -size / 2, size, size);
+            ctx.drawImage(cursorImageRef.current, -size / 2, -size / 2, size, size);
         
             ctx.restore();
         };
@@ -1084,8 +1086,8 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
                     bullet.weaponType === 'turret' ? '#233027' :
                         bullet.weaponType === 'shotgun' ? '#d2eb71' :
                             bullet.weaponType === 'pistol' ? '#523c2a' :
-                                bullet.weaponType === 'machinegun' ? '#232624':
-                                 '#FF0000';
+                                bullet.weaponType === 'machinegun' ? '#232624' :
+                                    '#FF0000';
                 ctx.fillRect(-bullet.size / 2, -bullet.size / 2, bullet.size, bullet.size);
                 ctx.restore();
             });
@@ -1267,11 +1269,12 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
                 (playerRadius + enemy.size / 2);
         };
 
-        // Start game systems
-        if (!win && !gameOver && !isPaused) {
+        // --- Start Game Systems ---
+         if (!win && !gameOver && !isPaused) {
             enemySpawnIntervalId = setInterval(spawnEnemy, ENEMY_SPAWN_INTERVAL);
             animationFrameId = requestAnimationFrame(updateGame);
         }
+
 
         // Setup event listeners
         window.addEventListener('mousemove', handleMouseMove);
@@ -1279,82 +1282,76 @@ const useGameEngine = (canvasRef, gameDuration, playerData, setPlayerData) => {
         window.addEventListener('mouseup', handleMouseUp);
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
+        const visibilityHandler = () => { setIsPaused(document.hidden); if (document.hidden) keys.current = { w: false, a: false, s: false, d: false }; };
+        document.addEventListener('visibilitychange', visibilityHandler);
 
         // Cleanup
         return () => {
+            console.log("Cleaning up game loop and listeners...");
             clearInterval(enemySpawnIntervalId);
             cancelAnimationFrame(animationFrameId);
-
-            // Clear all enemy damage intervals
             enemies.current.forEach(enemy => {
-                if (enemy.damageInterval) {
-                    clearInterval(enemy.damageInterval);
-                    enemy.damageInterval = null;
-                }
+                if (enemy.damageInterval) clearInterval(enemy.damageInterval);
             });
-
-            if (isPaused) {
-
-                window.removeEventListener('mousemove', handleMouseMove);
-                window.removeEventListener('mousedown', handleMouseDown);
-                window.removeEventListener('mouseup', handleMouseUp);
-                window.removeEventListener('keydown', handleKeyDown);
-                window.removeEventListener('keyup', handleKeyUp);
-
-                enemies.current.forEach(enemy => {
-                    if (enemy.damageInterval) {
-                        clearInterval(enemy.damageInterval);
-                        enemy.damageInterval = null;
-                    }
-                });
-            }
+             // Important: Remove listeners to prevent memory leaks
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mousedown', handleMouseDown);
+            window.removeEventListener('mouseup', handleMouseUp);
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+            document.removeEventListener('visibilitychange', visibilityHandler);
+            // No need to call cleanupGame here, it's called by Game component on unmount/navigate
         };
     }, [
-        win, gameOver, isPaused, enemyScalingFactor,
+        canvasRef, initialPlayerData, spritesLoaded, gameDuration,
+        // State that controls the loop running
+        win, gameOver, isPaused,
+        // Callbacks used inside the loop
         handleMouseMove, handleMouseDown, handleMouseUp, handleKeyDown, handleKeyUp,
-        createBulletsCallbackForPlayer, handleWeaponSwitch
+        createBulletsCallbackForPlayer, handleWeaponSwitch, handleEnemyKilled,
+        applyScreenShake, checkItemCollisions, handlePlayerDamage, handleWeaponFire, // Added handleWeaponFire
+        updateScreenShake, toggleSkill, // Added toggleSkill if it modifies refs used in loop
+        setActiveSkillsAndRefresh
     ]);
 
     return {
-        // State
+        // Game State
         win,
         gameOver,
         isPaused,
         baseHealth,
-        score,
+        score, // Session kills/score
         timeElapsed,
         playerHealth,
         currentWeaponInfo,
         currentAmmo,
         isReloading,
         reloadTime,
-        passiveSkills,
+        passiveSkills, // Current active skills map
         maxDrones,
-        items: items.current,
-        INITIAL_PLAYER_HEALTH,
-        INITIAL_BASE_HEALTH,
-        
-
-        isMusicPlaying,
-        musicVolume,
+        currentCurrencyInGame, // Currency managed during the game
 
         // Methods
         handleRestart,
-        toggleSkill: (skill) => setPassiveSkills(prev => ({ ...prev, [skill]: !prev[skill] })),
+        toggleSkill, // Use the new API-integrated version
         updateDroneCount: (newCount) => setMaxDrones(Math.max(0, newCount)),
+        getFinalGameState, // Function to get data for saving
+        cleanupGame, // Function to clear resources
 
-        // Input handlers
-        handleMouseMove,
-        handleMouseDown,
-        handleMouseUp,
-        handleKeyDown,
-        handleKeyUp,
-        handleWeaponSwitch,
+        // Input Handlers (if needed by Game component directly, though unlikely)
+        // handleMouseMove, handleMouseDown, handleMouseUp, handleKeyDown, handleKeyUp,
         setIsPaused,
-        cleanupGame,
+
+        // Music Controls
+        isMusicPlaying,
+        musicVolume,
         toggleMusic,
         setVolume,
-        applyScreenShake
+
+        // Refs (if Game component needs direct access, unlikely)
+        // canvasRef: engineCanvasRef // Pass back the ref if needed elsewhere? No, Game passes it in.
+
+        applyScreenShake // If UI elements outside need to trigger shake
     };
 };
 
