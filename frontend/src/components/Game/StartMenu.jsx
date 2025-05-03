@@ -3,13 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { backgroundStart, border, foregroundStart } from '../../assets';
 import HoverSoundButton from '../UI/HoverSoundButton';
 import { deleteAccountApi } from '../../utils/api';
+import CreditsBlock from '../UI/CreditsBlock';
 
 
-const StartMenu = ({ playerData, username, handleLogout, setGameActive, isLoading }) => { 
+const StartMenu = ({ playerData, username, handleLogout, setGameActive, isLoading }) => {
     const navigate = useNavigate();
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-    const [isDeleting, setIsDeleting] = useState(false); 
+    const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState(null);
+    const [showComingSoon, setShowComingSoon] = useState(false);
+    const [showCredits, setShowCredits] = useState(false);
+
+    const handleCharacterClick = () => {
+        console.log("Character button clicked!");
+        setShowComingSoon(true);
+        setTimeout(() => setShowComingSoon(false), 2000); // Hide after 2 seconds
+    };
+
     const handleStartGame = () => {
         setGameActive(true);
         navigate('/game');
@@ -74,6 +84,13 @@ const StartMenu = ({ playerData, username, handleLogout, setGameActive, isLoadin
 
     return (
         <div className="start-menu-container">
+            <CreditsBlock showCredits={showCredits} setShowCredits={setShowCredits} />
+
+            {showComingSoon && (
+                <div className="coming-soon-popup cubic-slide-fade">
+                    Feature coming soon!
+                </div>
+            )}
             <img /* Background Parallax */
                 src={backgroundStart} alt="background" className="parallax-background"
                 style={{ transform: calculateTransform(5), zIndex: -2 }} />
@@ -86,7 +103,7 @@ const StartMenu = ({ playerData, username, handleLogout, setGameActive, isLoadin
                 <div className="content-container">
                     <div className="top">
                         <div className="left">
-                           <div className="welcome-message">
+                            <div className="welcome-message">
                                 Welcome, {username || 'Player'}!!
                             </div>
                             <div className="currency-display">
@@ -94,7 +111,7 @@ const StartMenu = ({ playerData, username, handleLogout, setGameActive, isLoadin
                             </div>
                         </div>
                         <div className="right">
-                             <HoverSoundButton className="logout-button" onClick={handleLogout}>
+                            <HoverSoundButton className="logout-button" onClick={handleLogout}>
                                 Logout
                             </HoverSoundButton>
                             <HoverSoundButton
@@ -120,10 +137,10 @@ const StartMenu = ({ playerData, username, handleLogout, setGameActive, isLoadin
                                 <HoverSoundButton className="store-button" onClick={handleOpenStore}>
                                     Store
                                 </HoverSoundButton>
-                                <HoverSoundButton className="character-button" onClick={handleOpenCharacter}>
+                                <HoverSoundButton className="character-button" onClick={handleCharacterClick}>
                                     Character
                                 </HoverSoundButton>
-                                <HoverSoundButton className="credits-button" > {/* Removed onClick={handleStartGame} */}
+                                <HoverSoundButton className="credits-button" onClick={() => setShowCredits(!showCredits)}>
                                     Credits
                                 </HoverSoundButton>
                             </div>

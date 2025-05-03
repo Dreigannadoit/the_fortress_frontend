@@ -18,13 +18,14 @@ const DEFAULT_WEAPON = 'pistol';
 const useGameEngine = (
     canvasRef,
     gameDuration,
-    initialPlayerData, // Data fetched from API via App.js
+    initialPlayerData, // Data fetched from API via App.jsx
     setActiveSkillsAndRefresh
 ) => {
     const gunOffset = 24;
     const originalInitialData = useRef(initialPlayerData);
-
+   
     // Game state
+    const [gameStarted, setGameStarted] = useState(false);
     const [win, setWin] = useState(false);
     const [gameOver, setGameOver] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
@@ -223,7 +224,7 @@ const useGameEngine = (
         // Preload turret sound
         turretFireSound.current = new Audio(TURRET_CONFIG.fireSound);
         turretFireSound.current.volume = 0.3;
-        
+
         return () => {
             if (turretFireSound.current) {
                 turretFireSound.current.pause();
@@ -261,13 +262,13 @@ const useGameEngine = (
         } else {
             // Check ownership from the *original* data before activating
             const ownedCategory = Object.keys(originalInitialData.current.ownedItems).find(category =>
-                 originalInitialData.current.ownedItems[category]?.includes(skillId)
+                originalInitialData.current.ownedItems[category]?.includes(skillId)
             );
             if (ownedCategory) { // Check if the skill ID exists in any owned category
-                 nextSkillsArray = [...currentSkillsArray, skillId];
+                nextSkillsArray = [...currentSkillsArray, skillId];
             } else {
-                 console.warn(`Attempted to activate unowned item: ${skillId}`);
-                 return;
+                console.warn(`Attempted to activate unowned item: ${skillId}`);
+                return;
             }
         }
 
@@ -282,7 +283,7 @@ const useGameEngine = (
             setPassiveSkills(prev => ({ ...prev, [skillId]: !prev[skillId] }));
             // Show error to user
         }
-    }, [setActiveSkillsAndRefresh]); 
+    }, [setActiveSkillsAndRefresh]);
 
     // Update currency earned during the game session
     const handleEnemyKilled = useCallback((enemy) => {
@@ -316,6 +317,9 @@ const useGameEngine = (
     }, []);
 
     const playBackgroundMusic = useCallback(() => {
+        // Only play if game has started
+        if (!gameStarted) return;
+
         // Stop any existing music
         if (audioRef.current) {
             audioRef.current.pause();
@@ -346,7 +350,7 @@ const useGameEngine = (
         };
 
         playTrack();
-    }, [musicVolume]);
+    }, [musicVolume, gameStarted]);
 
     const toggleMusic = useCallback(() => {
         if (isMusicPlaying) {
@@ -368,15 +372,17 @@ const useGameEngine = (
 
     // Start music when game starts
     useEffect(() => {
-        if (!win && !gameOver && !isPaused) {
-            playBackgroundMusic();
-        } else {
+        if (!gameStarted || win || gameOver || isPaused) {
             if (audioRef.current) {
                 audioRef.current.pause();
                 setIsMusicPlaying(false);
             }
+            return;
         }
-    }, [win, gameOver, isPaused, playBackgroundMusic]);
+        
+        // Only play music if game is started and not in win/gameOver/paused states
+        playBackgroundMusic();
+    }, [win, gameOver, isPaused, playBackgroundMusic, gameStarted]);
 
     // Clean up audio on unmount
     useEffect(() => {
@@ -390,7 +396,7 @@ const useGameEngine = (
 
     // item spawn timer
     useEffect(() => {
-        if (win || gameOver || isPaused) return;
+        if (win || gameOver || isPaused || !gameStarted) return;
 
         const itemInterval = setInterval(() => {
             setItemSpawnTimer(prev => {
@@ -588,53 +594,68 @@ const useGameEngine = (
     }, [score, currentCurrencyInGame, currentLevelInGame, passiveSkills]);
 
     // Input handlers
-    const handleMouseMove = useCallback((e) => { mousePos.current = { x: e.clientX, y: e.clientY }; }, []);
+    const handleMouseMove = useCallback((e) => { 
+        mousePos.current = { x: e.clientX, y: e.clientY }; 
+    }, []);
 
-    const handleMouseDown = useCallback((e) => { if (!isPaused) { mouseDown.current = true; if (playerRef.current && !playerRef.current.getCurrentWeaponInfo().isAutomatic) { handleWeaponFire(); } } }, [isPaused, handleWeaponFire]);
+    const handleMouseDown = useCallback((e) => { 
+        if (!isPaused && gameStarted) {
+            mouseDown.current = true; 
+            if (playerRef.current && !playerRef.current.getCurrentWeaponInfo().isAutomatic) {   
+                handleWeaponFire(); 
+            } 
+        } 
+    }, [isPaused, handleWeaponFire, gameStarted]);
 
     const handleMouseUp = useCallback(() => { mouseDown.current = false; }, []);
 
     // Weapon switching now only affects internal player state
     const handleWeaponSwitch = useCallback((weaponName) => {
         // Check ownership against the *original* data for this session
-       const ownedWeapons = originalInitialData.current?.ownedItems?.weapons || [DEFAULT_WEAPON];
-       if (!ownedWeapons.includes(weaponName)) {
+        const ownedWeapons = originalInitialData.current?.ownedItems?.weapons || [DEFAULT_WEAPON];
+        if (!ownedWeapons.includes(weaponName)) {
             console.warn(`Attempted switch to unowned weapon: ${weaponName}`); return;
-       }
-       if (playerRef.current) {
-           playerRef.current.switchWeapon(weaponName);
-           const newInfo = playerRef.current.getCurrentWeaponInfo();
-           if(weaponDefinitions[newInfo.name]){
+        }
+        if (playerRef.current) {
+            playerRef.current.switchWeapon(weaponName);
+            const newInfo = playerRef.current.getCurrentWeaponInfo();
+            if (weaponDefinitions[newInfo.name]) {
                 setCurrentWeaponInfo({ ...weaponDefinitions[newInfo.name] });
                 setCurrentAmmo(playerRef.current.getCurrentAmmo());
                 setIsReloading(playerRef.current.isReloading());
                 setReloadTime(playerRef.current.getReloadTimeRemaining());
-           }
-       }
-   }, [initialPlayerData]);
+            }
+        }
+    }, [initialPlayerData]);
 
     const handleKeyDown = useCallback((e) => {
-        if (!playerRef.current) return; // Don't handle keys if player doesn't exist
+        if (!playerRef.current) return;
         const key = e.key.toLowerCase();
+        
+        // Always allow pause regardless of game state
+        if (key === 'escape') {
+            setIsPaused(prev => !prev);
+            return;
+        }
+    
+        // Block other keys if game hasn't started
+        if (!gameStarted) return;
+    
+        // Handle other keys
         if (keys.current.hasOwnProperty(key)) keys.current[key] = true;
-
+    
         switch (key) {
             case '1': handleWeaponSwitch('pistol'); break;
             case '2': handleWeaponSwitch('shotgun'); break;
             case '3': handleWeaponSwitch('machinegun'); break;
-            // Add cases for other owned weapons if necessary
             case 'r':
                 playerRef.current.startReload();
                 setIsReloading(playerRef.current.isReloading());
                 setReloadTime(playerRef.current.getReloadTimeRemaining());
                 break;
-            case 'escape': // Toggle pause
-                setIsPaused(prev => !prev);
-                break;
-            // Add other keybinds if needed (e.g., activate ultimate?)
             default: break;
         }
-    }, [handleWeaponSwitch]);
+    }, [handleWeaponSwitch, gameStarted]);
 
     const handleKeyUp = useCallback((e) => {
         const key = e.key.toLowerCase();
@@ -740,31 +761,31 @@ const useGameEngine = (
 
     // Timer systems 
     useEffect(() => {
-        if (win || gameOver || isPaused) return;
+        if (win || gameOver || isPaused || !gameStarted) return;
         const timerInterval = setInterval(() => {
             setTimeElapsed(prev => prev + 1000);
         }, 1000);
         return () => clearInterval(timerInterval);
-    }, [win, gameOver, isPaused]);
+    }, [win, gameOver, isPaused, gameStarted]);
 
     // Add more enemies as the game progresses
     useEffect(() => {
-        if (win || gameOver || isPaused) return;
+        if (win || gameOver || isPaused || !gameStarted) return;
         const maxEnemysSpawnCount = 20;
         const spawnCountInterval = setInterval(() => {
             setCurrentEnemySpawnCount(prev => Math.min(prev + 1, maxEnemysSpawnCount)); // Max of 20 enemies per wave
         }, 30000);
         return () => clearInterval(spawnCountInterval);
-    }, [win, gameOver, isPaused]);
+    }, [win, gameOver, isPaused, gameStarted]);
 
     // Make neemies harder to defeat
     useEffect(() => {
-        if (win || gameOver || isPaused) return;
+        if (win || gameOver || isPaused || !gameStarted) return;
         const scalingInterval = setInterval(() => {
             setEnemyScalingFactor(prev => prev * 1.2);
         }, 30000);
         return () => clearInterval(scalingInterval);
-    }, [win, gameOver, isPaused]);
+    }, [win, gameOver, isPaused, gameStarted]);
 
     // =============================
     // === Main Game Loop Effect ===
@@ -772,7 +793,7 @@ const useGameEngine = (
     useEffect(() => {
         if (!canvasRef.current || !playerRef.current || !spritesLoaded || !initialPlayerData) {
             console.log("Game loop waiting for initialization...");
-            return; // Don't start the loop yet
+            return;
         }
         console.log("Starting game loop...");
 
@@ -782,7 +803,7 @@ const useGameEngine = (
         let enemySpawnIntervalId;
 
         const spawnEnemy = () => {
-            if (isPaused || win || gameOver || !canvasRef.current) return; // Check canvas again
+            if (isPaused || win || gameOver || !canvasRef.current || !gameStarted) return; // Check canvas again
 
             const spawnZoneWidth = canvas.width * 0.1;
             const minX = spawnZoneWidth;
@@ -855,36 +876,39 @@ const useGameEngine = (
         const updatePlayer = () => {
             const player = playerRef.current;
             if (!player || isPaused) return;
-
-            // Automatic fire
-            const weaponInfo = player.getCurrentWeaponInfo();
-            if (weaponDefinitions[weaponInfo.name]?.isAutomatic && mouseDown.current) { // Check definition
-                handleWeaponFire(); // Use the unified fire handler
-            }
-
-            // Reload update
-            const reloadFinished = player.updateReload(Date.now());
-            if (reloadFinished) {
-                setCurrentAmmo(player.getCurrentAmmo());
-                setIsReloading(player.isReloading());
-                setReloadTime(player.getReloadTimeRemaining());
-            } else if (player.isReloading()) {
-                setReloadTime(player.getReloadTimeRemaining());
-            }
-
-            // Apply passive skills using the ref for current state
-            if (passiveSkillsRef.current.recovery) {
-                const prevHealth = player.getHealth();
-                PassiveSkills.recovery(player, true);
-                if (player.getHealth() !== prevHealth) {
-                    setPlayerHealth(player.getHealth());
-                }
-            }
-            const speedModifier = passiveSkillsRef.current.momentum ? PassiveSkills.momentum(player, true) : 1.0;
-            player.setSpeedModifier(speedModifier);
-
-
+        
+            // Update movement regardless of gameStarted state
             player.update(keys.current, { width: canvas.width, height: canvas.height });
+        
+            // Only process combat-related actions if game has started
+            if (gameStarted) {
+                // Automatic fire
+                const weaponInfo = player.getCurrentWeaponInfo();
+                if (weaponDefinitions[weaponInfo.name]?.isAutomatic && mouseDown.current) {
+                    handleWeaponFire();
+                }
+        
+                // Reload update
+                const reloadFinished = player.updateReload(Date.now());
+                if (reloadFinished) {
+                    setCurrentAmmo(player.getCurrentAmmo());
+                    setIsReloading(player.isReloading());
+                    setReloadTime(player.getReloadTimeRemaining());
+                } else if (player.isReloading()) {
+                    setReloadTime(player.getReloadTimeRemaining());
+                }
+        
+                // Apply passive skills
+                if (passiveSkillsRef.current.recovery) {
+                    const prevHealth = player.getHealth();
+                    PassiveSkills.recovery(player, true);
+                    if (player.getHealth() !== prevHealth) {
+                        setPlayerHealth(player.getHealth());
+                    }
+                }
+                const speedModifier = passiveSkillsRef.current.momentum ? PassiveSkills.momentum(player, true) : 1.0;
+                player.setSpeedModifier(speedModifier);
+            }
         };
 
         const updateEnemies = () => {
@@ -908,10 +932,10 @@ const useGameEngine = (
                     }, BASE_DAMAGE_INTERVAL);
                 }
                 // Clear interval if enemy starts moving again (e.g., knockback)
-                 else if (!enemy.isStopped && enemy.damageInterval) {
-                     clearInterval(enemy.damageInterval);
-                     enemy.damageInterval = null;
-                 }
+                else if (!enemy.isStopped && enemy.damageInterval) {
+                    clearInterval(enemy.damageInterval);
+                    enemy.damageInterval = null;
+                }
 
 
                 // --- Collision Checks ---
@@ -919,7 +943,7 @@ const useGameEngine = (
                 bullets.current = bullets.current.filter((bullet) => {
                     if (checkCollision(bullet, enemy)) {
                         applyScreenShake(/* Intensity based on bullet.weaponType */);
-                        const knockbackAngle = bullet.angle ?? Math.atan2(bullet.y - (enemy.y + enemy.size/2), bullet.x - (enemy.x + enemy.size/2));
+                        const knockbackAngle = bullet.angle ?? Math.atan2(bullet.y - (enemy.y + enemy.size / 2), bullet.x - (enemy.x + enemy.size / 2));
                         const killed = enemy.takeDamage(bullet.damage, weaponDefinitions[bullet.weaponType]?.recoilForce || 1, knockbackAngle);
 
                         if (killed) {
@@ -953,7 +977,7 @@ const useGameEngine = (
             });
         };
 
-        const updateItems = () => { checkItemCollisions(); items.current.forEach(i => i.update()); }; 
+        const updateItems = () => { checkItemCollisions(); items.current.forEach(i => i.update()); };
 
         const updateBullets = () => {
             bullets.current = bullets.current.filter((bullet) => {
@@ -975,13 +999,13 @@ const useGameEngine = (
         const updateTurrets = () => {
             turrets.current.forEach(turret => {
                 if (isPaused) return;
-        
+
                 // Set default turret position
                 if (turret.y === null || turret.y === undefined)
                     turret.y = canvas.height - LINE_Y_OFFSET + 50;
                 if (turret.x === null || turret.x === undefined)
                     turret.x = canvas.width - 150;
-        
+
                 // Find the closest enemy within range
                 let closestEnemy = null;
                 let closestDistance = Infinity;
@@ -992,7 +1016,7 @@ const useGameEngine = (
                         closestEnemy = enemy;
                     }
                 });
-        
+
                 // Target and shoot
                 turret.targetEnemy = closestEnemy;
                 if (turret.targetEnemy) {
@@ -1000,7 +1024,7 @@ const useGameEngine = (
                     const dx = turret.targetEnemy.x - turret.x;
                     const dy = turret.targetEnemy.y - turret.y;
                     turret.angle = Math.atan2(dy, dx);
-        
+
                     // Fire bullet
                     if (Date.now() - turret.lastFireTime > TURRET_CONFIG.fireRate) {
                         // Play firing sound
@@ -1008,7 +1032,7 @@ const useGameEngine = (
                             turretFireSound.current.currentTime = 0; // Rewind to start
                             turretFireSound.current.play().catch(e => console.log('Turret sound play failed:', e));
                         }
-        
+
                         // Create bullet
                         bullets.current.push({
                             x: turret.x + Math.cos(turret.angle) * TURRET_CONFIG.barrelLength,
@@ -1059,18 +1083,18 @@ const useGameEngine = (
         const drawCursor = () => {
             const player = playerRef.current;
             if (!player || !mousePos.current || !cursorImageRef.current?.complete) return;
-        
+
             const playerPos = player.getPosition();
             const angle = Math.atan2(mousePos.current.y - playerPos.y, mousePos.current.x - playerPos.x);
-        
+
             const bulletSpawnX = playerPos.x + Math.cos(angle + Math.PI / 2) * gunOffset;
             const bulletSpawnY = playerPos.y + Math.sin(angle + Math.PI / 2) * gunOffset;
-        
+
             const cursorX = mousePos.current.x + Math.cos(angle + Math.PI / 2) * gunOffset;
             const cursorY = mousePos.current.y + Math.sin(angle + Math.PI / 2) * gunOffset;
-        
+
             ctx.save();
-        
+
             // Draw offset correction line
             ctx.beginPath();
             ctx.moveTo(bulletSpawnX, bulletSpawnY);
@@ -1078,23 +1102,23 @@ const useGameEngine = (
             ctx.strokeStyle = 'rgba(184, 67, 67, 0.5)';
             ctx.lineWidth = 1;
             ctx.stroke();
-        
+
             // Draw small circle at bullet spawn point
             ctx.beginPath();
             ctx.arc(bulletSpawnX, bulletSpawnY, 3, 0, Math.PI * 2);
             ctx.fillStyle = 'yellow';
             ctx.fill();
-        
+
             ctx.restore(); // End normal drawing context
-        
+
             // Start cursor drawing with invert effect
             ctx.save();
             ctx.translate(cursorX, cursorY);
             ctx.globalCompositeOperation = "difference";
-        
+
             const size = 32;
             ctx.drawImage(cursorImageRef.current, -size / 2, -size / 2, size, size);
-        
+
             ctx.restore();
         };
 
@@ -1291,7 +1315,7 @@ const useGameEngine = (
         };
 
         // --- Start Game Systems ---
-         if (!win && !gameOver && !isPaused) {
+        if (!win && !gameOver && !isPaused) {
             enemySpawnIntervalId = setInterval(spawnEnemy, ENEMY_SPAWN_INTERVAL);
             animationFrameId = requestAnimationFrame(updateGame);
         }
@@ -1314,7 +1338,7 @@ const useGameEngine = (
             enemies.current.forEach(enemy => {
                 if (enemy.damageInterval) clearInterval(enemy.damageInterval);
             });
-             // Important: Remove listeners to prevent memory leaks
+            // Important: Remove listeners to prevent memory leaks
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mousedown', handleMouseDown);
             window.removeEventListener('mouseup', handleMouseUp);
@@ -1324,7 +1348,7 @@ const useGameEngine = (
             // No need to call cleanupGame here, it's called by Game component on unmount/navigate
         };
     }, [
-        canvasRef, initialPlayerData, spritesLoaded, gameDuration,
+        canvasRef, initialPlayerData, spritesLoaded, gameDuration, gameStarted,
         // State that controls the loop running
         win, gameOver, isPaused,
         // Callbacks used inside the loop
@@ -1351,8 +1375,10 @@ const useGameEngine = (
         passiveSkills, // Current active skills map
         maxDrones,
         currentCurrencyInGame, // Currency managed during the game
+        gameStarted,
 
         // Methods
+        setGameStarted,
         handleRestart,
         toggleSkill, // Use the new API-integrated version
         updateDroneCount: (newCount) => setMaxDrones(Math.max(0, newCount)),

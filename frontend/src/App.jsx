@@ -164,20 +164,50 @@ function AppContent() {
     }, [fetchData]);
 
     const purchaseItemAndRefresh = useCallback(async (itemId, category) => {
-        setIsLoading(true);
-        try {
-            await purchaseItemApi(itemId, category);
-            await fetchData(false); // Refresh data after purchase
-        } catch (err) {
-            console.error("Purchase failed:", err);
-            // Set specific error for purchase failure
-            setApiError(err.response?.data || "Purchase failed. Not enough currency or item unavailable?");
-            // Throw the error again so the component calling it can catch it (e.g., Store)
-            throw err;
-        } finally {
-            setIsLoading(false);
+        // Ensure we have current player data to work with for skills
+        if (!playerData && category === 'skills') {
+             console.error("Cannot activate skill: Player data not loaded.");
+             setApiError("Cannot activate skill: Player data not loaded.");
+             throw new Error("Player data not available"); // Prevent purchase if data is missing
         }
-    }, [fetchData]);
+
+        setIsLoading(true); // Indicate activity
+        setApiError(null);  // Clear previous errors
+        let purchaseSuccessful = false;
+
+        try {
+            // Step 1: Attempt the purchase
+            console.log(`Attempting purchase: ID=${itemId}, Category=${category}`);
+            await purchaseItemApi(itemId, category);
+            console.log(`Item ${itemId} purchased successfully.`);
+            purchaseSuccessful = true; // Mark purchase as successful
+
+            // Step 2: If it was a skill, attempt to activate it immediately
+            if (category === 'skills') {
+                console.log(`Item is a skill. Attempting to activate: ${itemId}`);
+                const currentActiveSkills = playerData?.activeSkills || [];
+                // Use a Set to automatically handle duplicates if the skill was already active (shouldn't happen ideally)
+                const nextActiveSkillsSet = new Set([...currentActiveSkills, itemId]);
+                const nextActiveSkillsArray = Array.from(nextActiveSkillsSet);
+
+                console.log('Setting active skills via API:', nextActiveSkillsArray);
+                await setActiveSkillsApi(nextActiveSkillsArray); // Call API to update active skills
+                console.log(`Skill ${itemId} activated successfully via API.`);
+            }
+
+            // Step 3: Fetch the latest player data reflecting purchase (and activation if applicable)
+            await fetchData(false); // Refresh data without main loading screen
+
+        } catch (err) {
+            console.error("Purchase or activation failed:", err);
+            const errorMessage = err.response?.data || `Failed to process purchase/activation for ${itemId}.`;
+            setApiError(errorMessage);
+            // Re-throw the error so the calling component (Store) can be aware of the failure
+            throw new Error(errorMessage); // Throw a generic error or the specific message
+        } finally {
+            setIsLoading(false); // Stop loading indicator
+        }
+    }, [fetchData, playerData, setActiveSkillsApi]);
 
     const setCurrentWeaponAndRefresh = useCallback(async (weaponName) => {
         setIsLoading(true);
@@ -193,8 +223,25 @@ function AppContent() {
         }
     }, [fetchData]);
 
+    // This is for indirect activation/deactivation (e.g., from checkboxes)
     const setActiveSkillsAndRefresh = useCallback(async (skillIds) => {
         setIsLoading(true);
+        try {
+            await setActiveSkillsApi(skillIds);
+            await fetchData(false);
+        } catch (err) {
+            console.error("Failed to set active skills:", err);
+            setApiError(err.response?.data || "Failed to set active skills.");
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [fetchData]);
+
+    // This is for direct activation/deactivation (e.g., from checkboxes)
+    const setActiveSkillsAndRefreshDirect = useCallback(async (skillIds) => {
+        setIsLoading(true);
+        setApiError(null);
         try {
             await setActiveSkillsApi(skillIds);
             await fetchData(false);
@@ -223,17 +270,17 @@ function AppContent() {
                 isAuthenticated={isAuthenticated}
                 playerData={playerData}
                 username={loggedInUsername}
-                setPlayerData={setPlayerData}
+                setPlayerData={setPlayerData} // Pass for Game engine internal updates if needed
                 updateStatsAndRefresh={updateStatsAndRefresh}
-                purchaseItemAndRefresh={purchaseItemAndRefresh}
+                purchaseItemAndRefresh={purchaseItemAndRefresh} // Pass the modified function
                 setCurrentWeaponAndRefresh={setCurrentWeaponAndRefresh}
-                setActiveSkillsAndRefresh={setActiveSkillsAndRefresh}
+                setActiveSkillsAndRefresh={setActiveSkillsAndRefreshDirect} // Pass the direct activation function
                 onLogin={handleLogin}
                 onRegister={handleRegister}
                 handleLogout={handleLogout}
                 authError={apiError}
-                isAuthLoading={isLoading && !isAuthenticated} 
-                isLoading={isLoading} // Add this line to pass the loading state
+                isAuthLoading={isLoading && !isAuthenticated}
+                isLoading={isLoading}
             />
         </>
     );
@@ -262,6 +309,7 @@ function AnimatedRoutes({
     const [gameActive, setGameActive] = useState(false);
     const audioRef = useRef(null);
     const [audioInitialized, setAudioInitialized] = useState(false);
+    const [showComingSoon, setShowComingSoon] = useState(false);
 
     useEffect(() => {
         const audio = new Audio(menu);
@@ -338,7 +386,6 @@ function AnimatedRoutes({
         }
     }, [isAuthenticated, location.pathname, navigate, isLoading]); // Add isLoading
 
-
     return (
         <AnimatePresence mode="wait" initial={false}>
             <Routes location={location} key={location.pathname}>
@@ -376,11 +423,12 @@ function AnimatedRoutes({
                             <TransitionWrapper>
                                 <Game
                                     playerData={playerData}
-                                    setPlayerData={setPlayerData} // For local updates
-                                    updateStatsAndRefresh={updateStatsAndRefresh} // For saving
+                                    setPlayerData={setPlayerData} 
+                                    updateStatsAndRefresh={updateStatsAndRefresh}
                                     setGameActive={setGameActive}
-                                    setCurrentWeaponAndRefresh={setCurrentWeaponAndRefresh} // Pass down if game can change weapon
-                                    setActiveSkillsAndRefresh={setActiveSkillsAndRefresh} // Pass down if game can change skills
+                                    gameActive={gameActive} 
+                                    setCurrentWeaponAndRefresh={setCurrentWeaponAndRefresh}
+                                    setActiveSkillsAndRefreshs={setActiveSkillsAndRefresh}
                                 />
                             </TransitionWrapper>
                         ) : (

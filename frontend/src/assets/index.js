@@ -23,6 +23,7 @@ import WizardWand from "./items/WizardWand.png"
 
 import floor from "./floor.png"
 import store from "./store.gif"
+import boss from "./boss.png"
 
 // Audio files for the game
 import slingshotSound from "./sound/sfx/slingshot.mp3"
@@ -40,6 +41,9 @@ import background_gameplay_2 from "./sound/sfx/background_gameplay_2.mp3"
 import menu from "./sound/sfx/menu.mp3"
 import buttons from "./sound/sfx/buttons.mp3"
 import turret_shoot from "./sound/sfx/turret.mp3"
+
+import boss_grunts from "./sound/sfx/boss_grunts.mp3"
+import text_sfx from "./sound/sfx/text_sfx.mp3"
 
 
 export {
@@ -62,6 +66,7 @@ export {
     WizardWand,
     turret_shoot,
     store,
+    boss,
 
     // Audio files
     slingshotSound,
@@ -75,6 +80,8 @@ export {
     background_gameplay_1,
     background_gameplay_2,
     menu,
-    buttons
+    buttons,
+    boss_grunts,
+    text_sfx
 
 }

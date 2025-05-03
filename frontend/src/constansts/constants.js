@@ -4,7 +4,7 @@ import minutesToMilliseconds from "../utils/MinutesToMilliseconds";
 
 // --- Constants --- 
 export const ENEMY_SPAWN_COUNT = 2;
-export const ENEMY_SPAWN_INTERVAL = 3000;
+export const ENEMY_SPAWN_INTERVAL = 1500;
 export const ENEMY_NORMAL_WEIGHT = 0.60;
 export const ENEMY_FAST_WEIGHT = 0.35;
 export const ENEMY_TANK_WEIGHT = 0.05;
@@ -88,7 +88,7 @@ export const weapons = {
 export const ENEMY_TYPES = {
     normal: {
         size: getScaledValue(120),
-        speed: 1,
+        speed: 1.5,
         health: 100,
         damage: 10,
         score: 10,
@@ -98,7 +98,7 @@ export const ENEMY_TYPES = {
     },
     fast: {
         size: getScaledValue(100),
-        speed: 3.5,
+        speed: 4,
         health: 50,
         damage: 2,
         score: 15,
@@ -108,7 +108,7 @@ export const ENEMY_TYPES = {
     },
     tank: {
         size: getScaledValue(200),
-        speed: 0.15,
+        speed: 0.55,
         health: 500,
         damage: 25,
         score: 20,
