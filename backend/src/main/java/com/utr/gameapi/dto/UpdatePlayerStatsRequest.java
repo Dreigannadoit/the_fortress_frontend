@@ -12,6 +12,8 @@ public class UpdatePlayerStatsRequest {
     private Float level;
     @NotNull
     private Integer kills;
+    @NotNull
+    private Integer sessionScore;
     private String currentWeaponName;
     private List<String> activeSkillIds;
 }

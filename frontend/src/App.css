@@ -772,3 +772,433 @@ button.menu-button:hover {
 .game-container.show-gameplay>* {
     pointer-events: auto;
 }
+
+.instructions-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    cursor: pointer;
+}
+
+.instructions-box {
+    background-color: #1a1a1a;
+    border: 3px solid #444;
+    border-radius: 10px;
+    padding: 2rem;
+    max-width: 600px;
+    width: 90%;
+    color: white;
+    cursor: default;
+}
+
+.instructions-box h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #f0f0f0;
+    font-size: 2rem;
+}
+
+.instructions-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.instruction-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 1.2rem;
+}
+
+.key {
+    display: inline-block;
+    background-color: #333;
+    color: white;
+    padding: 0.3rem 0.6rem;
+    border-radius: 5px;
+    border: 1px solid #666;
+    font-family: monospace;
+    min-width: 20px;
+    text-align: center;
+}
+
+.mouse-icon {
+    font-size: 1.5rem;
+}
+
+.mouse-button {
+    display: inline-block;
+    background-color: #333;
+    color: white;
+    padding: 0.3rem 0.6rem;
+    border-radius: 5px;
+    border: 1px solid #666;
+    font-family: monospace;
+}
+
+.start-game-button {
+    display: block;
+    margin: 0 auto;
+    padding: 0.8rem 2rem;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.start-game-button:hover {
+    background-color: #45a049;
+}
+
+.manual-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+}
+
+.manual-content {
+    background-color: #222;
+    border: 2px solid #444;
+    border-radius: 10px;
+    padding: 2rem;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    color: #eee;
+}
+
+.manual-content h3 {
+    color: #4CAF50;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.control-item {
+    display: flex;
+    margin-bottom: 0.8rem;
+    align-items: center;
+}
+
+.control-key {
+    display: inline-block;
+    background-color: #333;
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 5px;
+    border: 1px solid #555;
+    font-family: monospace;
+    min-width: 100px;
+    text-align: center;
+    margin-right: 1rem;
+}
+
+.control-description {
+    flex: 1;
+}
+
+.tips-list {
+    padding-left: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.tips-list li {
+    margin-bottom: 0.5rem;
+}
+
+.close-manual-button {
+    display: block;
+    margin: 1rem auto 0;
+    padding: 0.6rem 1.5rem;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.close-manual-button:hover {
+    background-color: #d32f2f;
+}
+
+.manual-button {
+    background-color: #2196F3;
+}
+
+.manual-button:hover {
+    background-color: #0b7dda;
+}
+
+/* Pixel Art Animations */
+@keyframes pixelSlideIn {
+    0% {
+        transform: translateY(-100vh);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pixelSlideOut {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(100vh);
+        opacity: 0;
+    }
+}
+
+@keyframes pixelFadeIn {
+    0% {
+        opacity: 0;
+        scale: 0.8;
+    }
+
+    100% {
+        opacity: 1;
+        scale: 1;
+    }
+}
+
+/* Instruction Box Animation */
+.instructions-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.instructions-overlay.animate-in {
+    animation: pixelFadeIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.instructions-overlay.animate-out {
+    animation: pixelFadeIn 0.5s reverse forwards;
+}
+
+.instructions-box {
+    background: #0f0f1a;
+    padding: 2rem;
+    max-width: 600px;
+    text-align: center;
+    transform-origin: center;
+}
+
+/* Mission Objectives Animation */
+.mission-objective {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(15, 15, 26, 0.9);
+    color: #ffffff;
+    padding: 1.5rem 2.5rem;
+    text-align: center;
+    z-index: 999;
+    box-shadow: 0px 5px black, 0px -5px black, 5px 0px black, -5px 0px black, 0px 10px #00000038, 5px 5px #00000038, -5px 5px #00000038, inset 0px 5px #ffffff36;
+
+    max-width: 80%;
+}
+
+.mission-objective.animate-in {
+    animation:
+        pixelPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
+        glowPulse 2s infinite alternate;
+}
+
+.mission-objective.animate-out {
+    animation: pixelPopOut 0.5s ease-out forwards;
+}
+
+.objective-items h3 {
+    margin: 0.8rem 0;
+    color: #ffff00;
+}
+
+/* Pixel Animations */
+@keyframes pixelPopIn {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+
+    80% {
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes pixelPopOut {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+}
+
+@keyframes glowPulse {
+    0% {
+        box-shadow: 0 0 0 4px #ff9900, 0 0 20px 5px rgba(255, 102, 0, 0.5);
+    }
+
+    100% {
+        box-shadow: 0 0 0 6px #ff9900, 0 0 30px 10px rgba(255, 94, 0, 0.8);
+    }
+}
+
+.weapon-not-owned-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px;
+    border: 3px solid #ff0000;
+    text-align: center;
+    z-index: 1000;
+    animation: pulse 500ms infinite alternate;
+}
+
+@keyframes pulse {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.popup-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+
+
+.stats_player {
+    position: fixed;
+    top: 23px;
+    left: 50%;
+    transform: translate(-50%, 0%);
+    z-index: 2000;
+    background-color: #1c1c1c;
+    color: white;
+    padding: 16px;
+    /* Pixel-style font */
+    font-size: 16px;
+    border: 2px solid white;
+    box-shadow:
+        0px 5px white,
+        0px -5px white,
+        5px 0px white,
+        -5px 0px white,
+        0px 10px #00000038,
+        5px 5px #00000038,
+        -5px 5px #00000038,
+        inset 0px 5px #ffffff36,
+        0 0 45px rgba(0, 170, 255, 0.8);
+    max-width: 400px;
+    margin: 20px auto;
+    border-radius: 0;
+    clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.stats_player.active{
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+    opacity: 1;
+}
+
+.stats_player__title h1 {
+    font-size: 16px;
+    margin-bottom: 16px;
+    text-align: center;
+    text-shadow: 1px 1px black;
+}
+
+.stats_player__content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stats_player__content__item {
+    background-color: #2b2b2b;
+    border: 2px solid #ffffff20;
+    padding: 10px;
+    box-shadow: inset 0px 1px #ffffff20;
+}
+
+.stats_player__content__item .img {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.stats_player__content__item .img img {
+    width: 32px;
+    height: 32px;
+    image-rendering: pixelated;
+}
+
+
+.stats_player__content__item ul{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.stats_player__content__item ul li{
+    padding: 10px;
+    background-color: #ffffff;
+    color: #000000;
+    margin-top: 5px;
+}

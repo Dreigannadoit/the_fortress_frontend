@@ -72,10 +72,25 @@ export default class Enemy {
         this.flashStartTime = 0;
 
         // handle Popup interval
-        this.damagePopups = []; 
+        this.damagePopups = [];
 
         // Load sprites
         this.loadSprites(type);
+    }
+
+    checkPlayerCollision(player) {
+        if (!player || !player.getPosition) return false;
+
+        const playerPos = player.getPosition();
+        const playerRadius = player.getRadius();
+        const enemyCenterX = this.x + this.size / 2;
+        const enemyCenterY = this.y + this.size / 2;
+
+        const dx = enemyCenterX - playerPos.x;
+        const dy = enemyCenterY - playerPos.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        return distance < (playerRadius + this.size / 2);
     }
 
     update(player, canvas, lineY) {
@@ -84,6 +99,9 @@ export default class Enemy {
             this.lastPlayerX = player.x;
             this.lastPlayerY = player.y;
         }
+
+        const prevX = this.x;
+        const prevY = this.y;
 
         // Apply velocity and friction
         this.x += this.velocity.x;
@@ -114,6 +132,29 @@ export default class Enemy {
         // Handle burning damage
         this.#updateBurn();
 
+
+        if (this.isStopped && this.y < lineY - this.size) {
+            // If we were stopped but got knocked above the line
+            this.isStopped = false;
+        }
+
+        // Ensure enemy don't get stuck in the player
+        if (player && this.checkPlayerCollision(player)) {
+            // Push away from player to prevent sticking
+            const angle = Math.atan2(
+                this.y - player.y,
+                this.x - player.x
+            );
+            const pushDistance = player.getRadius() + this.size / 2 + 5;
+            this.x = player.x + Math.cos(angle) * pushDistance;
+            this.y = player.y + Math.sin(angle) * pushDistance;
+        }
+
+        // Clamp position to canvas with buffer
+        const buffer = 5;
+        this.x = Math.max(buffer, Math.min(canvas.width - this.size - buffer, this.x));
+        this.y = Math.max(buffer, Math.min(lineY - this.size, this.y));
+
     }
 
 
@@ -121,20 +162,28 @@ export default class Enemy {
         this.spriteRefs = refs;
     }
 
-
     applyKnockback(force, angle) {
-        this.velocity.x += Math.cos(angle) * force;
-        this.velocity.y += Math.sin(angle) * force;
+        // Add knockback resistance scaling
+        const effectiveForce = force * (1 - this.knockbackResistance);
 
-        // Limit maximum velocity
-        const maxSpeed = 15;
+        this.velocity.x += Math.cos(angle) * effectiveForce;
+        this.velocity.y += Math.sin(angle) * effectiveForce;
+
+        // Limit maximum velocity to prevent glitching
         const currentSpeed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
-        if (currentSpeed > maxSpeed) {
-            this.velocity.x = (this.velocity.x / currentSpeed) * maxSpeed;
-            this.velocity.y = (this.velocity.y / currentSpeed) * maxSpeed;
-        }
-    }
+        const maxSpeed = this.type === 'fast' ? 20 : 15; // Fast enemies can move quicker
 
+        if (currentSpeed > maxSpeed) {
+            const ratio = maxSpeed / currentSpeed;
+            this.velocity.x *= ratio;
+            this.velocity.y *= ratio;
+        }
+
+        // Prevent enemies from getting stuck by ensuring minimum movement
+        if (Math.abs(this.velocity.x) < 0.1) this.velocity.x = 0;
+        if (Math.abs(this.velocity.y) < 0.1) this.velocity.y = 0;
+    }
+    // In Enemy class
     #chasePlayer(player, maxY) {
         if (!player) return;
 
@@ -142,21 +191,30 @@ export default class Enemy {
         const dy = player.y - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance > 0) {
-            // Update velocity (smoother movement)
-            this.velocity.x += (dx / distance) * this.speed * 0.1;
-            this.velocity.y += (dy / distance) * this.speed * 0.1;
+        // If already touching player, don't add more velocity
+        if (distance < player.getRadius() + this.size / 2) {
+            this.velocity.x *= 0.8;
+            this.velocity.y *= 0.8;
+            return;
+        }
 
-            // For NON-fast enemies: Update facing based on movement
-            if (this.type !== 'fast' && Math.abs(this.velocity.x) > 0.1) {
-                this.facingRight = this.velocity.x > 0;
+        if (distance > 0) {
+            // Smoother acceleration
+            const acceleration = this.speed * 0.1;
+            this.velocity.x += (dx / distance) * acceleration;
+            this.velocity.y += (dy / distance) * acceleration;
+
+            // Limit speed
+            const currentSpeed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+            if (currentSpeed > this.speed) {
+                this.velocity.x = (this.velocity.x / currentSpeed) * this.speed;
+                this.velocity.y = (this.velocity.y / currentSpeed) * this.speed;
             }
         }
 
-        // Prevent going below defense line
-        if (this.y > maxY) {
-            this.y = maxY;
-            this.velocity.y = 0;
+        // Update facing based on movement for non-fast enemies
+        if (this.type !== 'fast' && Math.abs(this.velocity.x) > 0.5) {
+            this.facingRight = this.velocity.x > 0;
         }
     }
 
@@ -189,18 +247,18 @@ export default class Enemy {
         this.lastHitTime = Date.now();
         this.isFlashing = true; // Add this line
         this.flashStartTime = Date.now(); // Add this line
-    
+
         // Play hurt sound
         const sounds = ENEMY_SOUNDS[this.type] || ENEMY_SOUNDS['normal'];
         if (sounds?.hurt) playSound(sounds.hurt);
-    
+
         // Apply knockback
         const effectiveKnockback = knockbackForce * (1 - this.knockbackResistance);
         if (effectiveKnockback > 0) {
             this.velocity.x += Math.cos(angle) * effectiveKnockback;
             this.velocity.y += Math.sin(angle) * effectiveKnockback;
         }
-    
+
         return false;
     }
 
@@ -238,19 +296,19 @@ export default class Enemy {
     draw(ctx) {
         this.updateAnimation();
         this.updateFlash();
-    
+
         ctx.save();
-    
+
         if (this.isFlashing) {
             ctx.filter = 'hue-rotate(0deg) saturate(3)';
             ctx.opacity = 0.5;
         }
-    
+
         // For fast enemies, just face left/right without rotation
         if (this.type === 'fast') {
             // Determine facing direction based on player position
             this.facingRight = this.lastPlayerX > this.x;
-            
+
             const drawX = this.facingRight ? this.x : this.x + this.size;
             if (!this.facingRight) {
                 ctx.translate(drawX, this.y);
@@ -258,7 +316,7 @@ export default class Enemy {
             } else {
                 ctx.translate(this.x, this.y);
             }
-    
+
             const frame = this.spriteRefs?.[this.currentFrame]?.current;
             if (frame?.complete) {
                 try {
@@ -279,7 +337,7 @@ export default class Enemy {
             } else {
                 ctx.translate(this.x, this.y);
             }
-    
+
             const frame = this.spriteRefs?.[this.currentFrame]?.current;
             if (frame?.complete) {
                 try {
@@ -292,17 +350,49 @@ export default class Enemy {
                 this.drawFallback(ctx);
             }
         }
-    
+
         ctx.filter = 'none';
         ctx.restore();
-    
+
         // Draw health bar (in original coordinates)
         this.drawHealthBar(ctx);
-    
+
         // Draw burning effect if needed
         if (this.isBurning) {
             this.drawBurningEffect(ctx);
         }
+
+
+        // DEBUG: Draw collision circle
+        ctx.save();
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(
+            this.x + this.size / 2,
+            this.y + this.size / 2,
+            this.size / 2,
+            0,
+            Math.PI * 2
+        );
+        ctx.stroke();
+        ctx.restore();
+
+        // DEBUG: Draw velocity vector
+        ctx.save();
+        ctx.strokeStyle = 'blue';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(
+            this.x + this.size / 2,
+            this.y + this.size / 2
+        );
+        ctx.lineTo(
+            this.x + this.size / 2 + this.velocity.x * 10,
+            this.y + this.size / 2 + this.velocity.y * 10
+        );
+        ctx.stroke();
+        ctx.restore();
     }
 
     drawFallback(ctx) {

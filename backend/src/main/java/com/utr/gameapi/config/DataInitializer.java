@@ -46,7 +46,7 @@ public class DataInitializer implements CommandLineRunner {
             pistol.setSpread(0);
 
             Weapon shotgun = new Weapon();
-            shotgun.setName("shotgun");
+            shotgun.setName(" ");
             shotgun.setDamage(35); // Per pellet
             shotgun.setPellets(8);
             shotgun.setSpread((float) (Math.PI / 12));

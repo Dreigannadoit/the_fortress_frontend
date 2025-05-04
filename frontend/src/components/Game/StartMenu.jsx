@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react'; // Added useContext
 import { useNavigate } from 'react-router-dom';
-import { backgroundStart, border, foregroundStart } from '../../assets';
+import { backgroundStart, border, foregroundStart, RockSpell, Slingshot, WizardWand } from '../../assets';
 import HoverSoundButton from '../UI/HoverSoundButton';
 import { deleteAccountApi } from '../../utils/api';
 import CreditsBlock from '../UI/CreditsBlock';
+import LoadingSpinner from '../UI/LoadingSpinner';
+import PlayerStats from '../UI/PlayerStats';
 
 
 const StartMenu = ({ playerData, username, handleLogout, setGameActive, isLoading }) => {
@@ -13,11 +15,12 @@ const StartMenu = ({ playerData, username, handleLogout, setGameActive, isLoadin
     const [deleteError, setDeleteError] = useState(null);
     const [showComingSoon, setShowComingSoon] = useState(false);
     const [showCredits, setShowCredits] = useState(false);
+    const [playerStats, setPlayerStats] = useState(false); 
 
     const handleCharacterClick = () => {
         console.log("Character button clicked!");
         setShowComingSoon(true);
-        setTimeout(() => setShowComingSoon(false), 2000); // Hide after 2 seconds
+        setTimeout(() => setShowComingSoon(false), 2000);
     };
 
     const handleStartGame = () => {
@@ -35,6 +38,10 @@ const StartMenu = ({ playerData, username, handleLogout, setGameActive, isLoadin
         console.log("Navigate to Character Screen (Not Implemented)");
         // navigate('/character');
     };
+
+    const togglePlayerStats = () => {
+        setPlayerStats(prev => !prev);
+    }
 
     const handleDeleteAccount = async () => {
         // **Crucial Confirmation Step**
@@ -79,13 +86,18 @@ const StartMenu = ({ playerData, username, handleLogout, setGameActive, isLoadin
     };
 
     if (isLoading || !playerData) {
-        return <div>Loading Menu...</div>;
+        return <LoadingSpinner />; 
     }
+
+    const ownedWeapons = playerData?.ownedItems?.weapons || [];
+    const ownedSkills = playerData?.ownedItems?.skills || [];
 
     return (
         <div className="start-menu-container">
             <CreditsBlock showCredits={showCredits} setShowCredits={setShowCredits} />
 
+            <PlayerStats ownedWeapons={ownedWeapons} active={playerStats} ownedSkills={ownedSkills} username={username} playerData={playerData}/>
+    
             {showComingSoon && (
                 <div className="coming-soon-popup cubic-slide-fade">
                     Feature coming soon!
@@ -103,7 +115,7 @@ const StartMenu = ({ playerData, username, handleLogout, setGameActive, isLoadin
                 <div className="content-container">
                     <div className="top">
                         <div className="left">
-                            <div className="welcome-message">
+                            <div className="welcome-message" onClick={togglePlayerStats}>
                                 Welcome, {username || 'Player'}!!
                             </div>
                             <div className="currency-display">

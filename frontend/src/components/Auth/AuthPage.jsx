@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 
-const AuthPage = ({ onLogin, onRegister, error, isLoading }) => {
+const AuthPage = ({ onLogin, onRegister, error, isLoading, onLogout }) => {
     const [isLoginView, setIsLoginView] = useState(true);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        if (isLoading) return; // Prevent multiple submissions
+        if (isLoading) return;
 
         if (isLoginView) {
             onLogin(username, password);
@@ -15,6 +15,14 @@ const AuthPage = ({ onLogin, onRegister, error, isLoading }) => {
             onRegister(username, password);
         }
     };
+
+    const toggleAuthView = () => {
+        setUsername('');
+        setPassword('');
+        setIsLoginView(!isLoginView);
+    };
+
+    console.log("Made with MySQL, Spring Boot, React, and Node.js");
 
     return (
         <div className="auth-page-container">
@@ -44,14 +52,14 @@ const AuthPage = ({ onLogin, onRegister, error, isLoading }) => {
                         />
                     </div>
                     {error && <p className="error-message">{error}</p>}
-                    <button type="submit" disabled={isLoading} className="auth-button auth-submit-button ">
+                    <button type="submit" disabled={isLoading} className="auth-button auth-submit-button">
                         {isLoading ? 'Processing...' : (isLoginView ? 'Login' : 'Register')}
                     </button>
                 </form>
                 <br />
                 <br />
                 <button
-                    onClick={() => setIsLoginView(!isLoginView)}
+                    onClick={toggleAuthView}
                     className="auth-toggle-button"
                     disabled={isLoading}
                 >

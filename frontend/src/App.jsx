@@ -18,16 +18,16 @@ const mapApiDataToReactState = (apiData) => {
         currency: apiData.currency,
         level: apiData.level,
         kills: apiData.kills,
+        highestScore: apiData.highestScore,
         ownedItems: {
-            weapons: apiData.ownedWeaponNames ? [...apiData.ownedWeaponNames] : ['pistol'], // Ensure default pistol if empty initially
-            turrets: apiData.ownedItemsByCategory?.turrets ? [...apiData.ownedItemsByCategory.turrets] : [],
-            orbs: apiData.ownedItemsByCategory?.orbs ? [...apiData.ownedItemsByCategory.orbs] : [],
-            skills: apiData.ownedItemsByCategory?.skills ? [...apiData.ownedItemsByCategory.skills] : [],
-            ultimates: apiData.ownedItemsByCategory?.ultimates ? [...apiData.ownedItemsByCategory.ultimates] : [],
-            // Add other categories if needed
+            weapons: apiData.ownedWeaponNames || ['pistol'], // Default to pistol if empty
+            turrets: apiData.ownedItemsByCategory?.turrets || [],
+            orbs: apiData.ownedItemsByCategory?.orbs || [],
+            skills: apiData.ownedItemsByCategory?.skills || [],
+            ultimates: apiData.ownedItemsByCategory?.ultimates || [],
         },
-        currentWeapon: apiData.currentWeaponName || 'pistol', // Default to pistol if not set
-        activeSkills: apiData.activeSkillIds ? [...apiData.activeSkillIds] : [],
+        currentWeapon: apiData.currentWeaponName || 'pistol',
+        activeSkills: apiData.activeSkillIds || [],
     };
 };
 
@@ -50,6 +50,23 @@ function AppContent() {
     const [isLoading, setIsLoading] = useState(true);
     const [apiError, setApiError] = useState(null);
     const navigate = useNavigate();
+
+    const enterFullscreen = () => {
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen(); // Safari
+        else if (el.msRequestFullscreen) el.msRequestFullscreen(); // IE11
+    };
+
+    const exitFullscreen = () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        } else if (document.webkitFullscreenElement) {
+            document.webkitExitFullscreen(); // Safari
+        } else if (document.msFullscreenElement) {
+            document.msExitFullscreen(); // IE11
+        }
+    };
 
     // --- Centralized Data Fetching ---
     const fetchData = useCallback(async (showLoading = true) => {
@@ -98,6 +115,29 @@ function AppContent() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // --- Check for full screen exit
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+            if (!isFullscreen && isAuthenticated) {
+                // Re-enter fullscreen if user is still authenticated
+                enterFullscreen();
+            }
+        };
+    
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('msfullscreenchange', handleFullscreenChange);
+    
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+        };
+    }, [isAuthenticated]);
+    
+
     // --- Authentication Handlers ---
     const handleLogin = async (username, password) => {
         setIsLoading(true);
@@ -108,6 +148,7 @@ function AppContent() {
             localStorage.setItem('username', response.data.username); // <-- Store username
             setLoggedInUsername(response.data.username); // <-- Set username state
             await fetchData(false);
+            enterFullscreen();
             // navigate('/'); // Optional: Navigate after successful login + fetch
         } catch (err) {
             console.error("Login failed:", err);
@@ -128,6 +169,7 @@ function AppContent() {
             await register(username, password);
             // Login automatically sets token and username in localStorage and state
             await handleLogin(username, password);
+            enterFullscreen();
         } catch (err) {
             console.error("Registration failed:", err);
             setApiError(err.response?.data || "Registration failed. Username might be taken.");
@@ -142,6 +184,7 @@ function AppContent() {
         setIsAuthenticated(false);
         setPlayerData(null);
         setLoggedInUsername(null); // <-- Clear username state
+        exitFullscreen(); 
         navigate('/auth');
     };
 

@@ -7,7 +7,7 @@ const PassiveSkillCheckboxes = ({ skills, toggleSkill }) => (
                 <input
                     type="checkbox"
                     checked={isActive}
-                    onChange={() => toggleSkill(skill)}
+                    onChange={() => toggleSkill(skill)}sa
                 />
                 {skill.charAt(0).toUpperCase() + skill.slice(1)}
             </label>

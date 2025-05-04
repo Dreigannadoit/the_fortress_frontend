@@ -23,7 +23,7 @@ const useGameEngine = (
 ) => {
     const gunOffset = 24;
     const originalInitialData = useRef(initialPlayerData);
-   
+
     // Game state
     const [gameStarted, setGameStarted] = useState(false);
     const [win, setWin] = useState(false);
@@ -291,7 +291,7 @@ const useGameEngine = (
         setScore(newScore);
         const scoreBasedCurrencyGain = Math.floor(newScore / 2) - Math.floor(lastConvertedScoreCurrency.current / 2);
         if (scoreBasedCurrencyGain > 0) {
-            setCurrentCurrencyInGame(prev => prev + scoreBasedCurrencyGain);
+            setCurrentCurrencyInGame(prev => prev + Math.floor(scoreBasedCurrencyGain / 2));
             lastConvertedScoreCurrency.current = newScore;
         }
     }, [score, currentCurrencyInGame]);// Depend on internal state
@@ -379,7 +379,7 @@ const useGameEngine = (
             }
             return;
         }
-        
+
         // Only play music if game is started and not in win/gameOver/paused states
         playBackgroundMusic();
     }, [win, gameOver, isPaused, playBackgroundMusic, gameStarted]);
@@ -584,27 +584,34 @@ const useGameEngine = (
         const originalLevel = originalInitialData.current?.level ?? DEFAULT_LEVEL;
         const finalLevel = Math.max(currentLevelInGame, originalLevel) + levelFromScore;
         const activeSkillIds = Object.entries(passiveSkills).filter(([, a]) => a).map(([k]) => k);
+
+        
+        const killsBeforeSession = originalInitialData.current?.kills ?? 0;
+        const sessionKills = score; // 'score' represents kills *in this session*
+        const totalKillsAfterSession = killsBeforeSession + sessionKills;
+
         return {
-            currency: currentCurrencyInGame,
-            level: finalLevel,
-            kills: score,
+            currency: currentCurrencyInGame, // Final currency from game session
+            level: finalLevel, // Calculated final level
+            kills: totalKillsAfterSession, // NEW total kills to store in DB
+            sessionScore: score, // <-- Add the score achieved THIS session
             currentWeaponName: playerRef.current?.getCurrentWeaponInfo().name || DEFAULT_WEAPON,
             activeSkillIds: activeSkillIds,
         };
     }, [score, currentCurrencyInGame, currentLevelInGame, passiveSkills]);
 
     // Input handlers
-    const handleMouseMove = useCallback((e) => { 
-        mousePos.current = { x: e.clientX, y: e.clientY }; 
+    const handleMouseMove = useCallback((e) => {
+        mousePos.current = { x: e.clientX, y: e.clientY };
     }, []);
 
-    const handleMouseDown = useCallback((e) => { 
+    const handleMouseDown = useCallback((e) => {
         if (!isPaused && gameStarted) {
-            mouseDown.current = true; 
-            if (playerRef.current && !playerRef.current.getCurrentWeaponInfo().isAutomatic) {   
-                handleWeaponFire(); 
-            } 
-        } 
+            mouseDown.current = true;
+            if (playerRef.current && !playerRef.current.getCurrentWeaponInfo().isAutomatic) {
+                handleWeaponFire();
+            }
+        }
     }, [isPaused, handleWeaponFire, gameStarted]);
 
     const handleMouseUp = useCallback(() => { mouseDown.current = false; }, []);
@@ -614,7 +621,8 @@ const useGameEngine = (
         // Check ownership against the *original* data for this session
         const ownedWeapons = originalInitialData.current?.ownedItems?.weapons || [DEFAULT_WEAPON];
         if (!ownedWeapons.includes(weaponName)) {
-            console.warn(`Attempted switch to unowned weapon: ${weaponName}`); return;
+            console.warn(`Attempted switch to unowned weapon: ${weaponName}`);
+            return weaponName; // Return the weapon name if not owned
         }
         if (playerRef.current) {
             playerRef.current.switchWeapon(weaponName);
@@ -626,28 +634,29 @@ const useGameEngine = (
                 setReloadTime(playerRef.current.getReloadTimeRemaining());
             }
         }
+        return null; // Return null if weapon switch was successful
     }, [initialPlayerData]);
 
     const handleKeyDown = useCallback((e) => {
-        if (!playerRef.current) return;
+        if (!playerRef.current) return null;
         const key = e.key.toLowerCase();
-        
+    
         // Always allow pause regardless of game state
         if (key === 'escape') {
             setIsPaused(prev => !prev);
-            return;
+            return null;
         }
     
         // Block other keys if game hasn't started
-        if (!gameStarted) return;
+        if (!gameStarted) return null;
     
         // Handle other keys
         if (keys.current.hasOwnProperty(key)) keys.current[key] = true;
     
         switch (key) {
-            case '1': handleWeaponSwitch('pistol'); break;
-            case '2': handleWeaponSwitch('shotgun'); break;
-            case '3': handleWeaponSwitch('machinegun'); break;
+            case '1': return handleWeaponSwitch('pistol');
+            case '2': return handleWeaponSwitch('shotgun');
+            case '3': return handleWeaponSwitch('machinegun');
             case 'r':
                 playerRef.current.startReload();
                 setIsReloading(playerRef.current.isReloading());
@@ -655,6 +664,7 @@ const useGameEngine = (
                 break;
             default: break;
         }
+        return null;
     }, [handleWeaponSwitch, gameStarted]);
 
     const handleKeyUp = useCallback((e) => {
@@ -876,10 +886,10 @@ const useGameEngine = (
         const updatePlayer = () => {
             const player = playerRef.current;
             if (!player || isPaused) return;
-        
+
             // Update movement regardless of gameStarted state
             player.update(keys.current, { width: canvas.width, height: canvas.height });
-        
+
             // Only process combat-related actions if game has started
             if (gameStarted) {
                 // Automatic fire
@@ -887,7 +897,7 @@ const useGameEngine = (
                 if (weaponDefinitions[weaponInfo.name]?.isAutomatic && mouseDown.current) {
                     handleWeaponFire();
                 }
-        
+
                 // Reload update
                 const reloadFinished = player.updateReload(Date.now());
                 if (reloadFinished) {
@@ -897,7 +907,7 @@ const useGameEngine = (
                 } else if (player.isReloading()) {
                     setReloadTime(player.getReloadTimeRemaining());
                 }
-        
+
                 // Apply passive skills
                 if (passiveSkillsRef.current.recovery) {
                     const prevHealth = player.getHealth();
@@ -960,7 +970,7 @@ const useGameEngine = (
                     return true; // Keep bullet
                 });
 
-                if (checkPlayerCollision(enemy)) {
+                if (enemy.checkPlayerCollision(playerRef.current)) {
                     handlePlayerDamage(enemy.damage, enemy);
                     const knockbackAngle = Math.atan2(enemy.y - playerRef.current.y, enemy.x - playerRef.current.x);
                     enemy.applyKnockback(15, knockbackAngle + Math.PI); // Knock away from player
@@ -1303,17 +1313,6 @@ const useGameEngine = (
             );
         };
 
-        const checkPlayerCollision = (enemy) => {
-            const player = playerRef.current;
-            const playerPos = player.getPosition();
-            const playerRadius = player.getRadius();
-            const enemyCenterX = enemy.x + enemy.size / 2;
-            const enemyCenterY = enemy.y + enemy.size / 2;
-
-            return calculateDistance(enemyCenterX, enemyCenterY, playerPos.x, playerPos.y) <
-                (playerRadius + enemy.size / 2);
-        };
-
         // --- Start Game Systems ---
         if (!win && !gameOver && !isPaused) {
             enemySpawnIntervalId = setInterval(spawnEnemy, ENEMY_SPAWN_INTERVAL);
@@ -1386,7 +1385,7 @@ const useGameEngine = (
         cleanupGame, // Function to clear resources
 
         // Input Handlers (if needed by Game component directly, though unlikely)
-        // handleMouseMove, handleMouseDown, handleMouseUp, handleKeyDown, handleKeyUp,
+        handleMouseMove, handleMouseDown, handleMouseUp, handleKeyDown, handleKeyUp,
         setIsPaused,
 
         // Music Controls

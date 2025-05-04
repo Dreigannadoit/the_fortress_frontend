@@ -11,6 +11,7 @@ public class PlayerDataResponse {
     private int currency;
     private float level;
     private int kills;
+    private int highestScore;
     private String currentWeaponName;
     private Set<String> ownedWeaponNames; // Just the names/ids
     private Map<String, Set<String>> ownedItemsByCategory; // e.g., {"turrets": ["basic_turret"], "skills": ["recovery"]}

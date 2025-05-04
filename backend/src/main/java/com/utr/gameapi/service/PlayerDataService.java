@@ -35,26 +35,23 @@ public class PlayerDataService {
     public PlayerDataResponse getPlayerData(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+        PlayerStats stats = user.getPlayerStats();
 
-        PlayerStats stats = user.getPlayerStats(); // Fetch via user relationship
-
-        // Fetch owned weapon names efficiently
         Set<String> ownedWeaponNames = user.getOwnedWeapons().stream()
                 .map(ownership -> ownership.getWeapon().getName())
                 .collect(Collectors.toSet());
 
-        // Fetch owned item IDs efficiently and group by category
         Map<String, Set<String>> ownedItemsByCategory = user.getOwnedItems().stream()
                 .collect(Collectors.groupingBy(
-                        ownership -> ownership.getGameItem().getCategory(), // Group by category
-                        Collectors.mapping(ownership -> ownership.getGameItem().getItemId(), Collectors.toSet()) // Collect item IDs in a Set
+                        ownership -> ownership.getGameItem().getCategory(),
+                        Collectors.mapping(ownership -> ownership.getGameItem().getItemId(), Collectors.toSet())
                 ));
-
 
         PlayerDataResponse response = new PlayerDataResponse();
         response.setCurrency(stats.getCurrency());
         response.setLevel(stats.getLevel());
-        response.setKills(stats.getKills());
+        response.setKills(stats.getKills()); // This is the *total* kills stored
+        response.setHighestScore(stats.getHighestScore()); // <-- Include highest score
         response.setCurrentWeaponName(stats.getCurrentWeaponName());
         response.setOwnedWeaponNames(ownedWeaponNames);
         response.setOwnedItemsByCategory(ownedItemsByCategory);
@@ -68,9 +65,15 @@ public class PlayerDataService {
         PlayerStats stats = playerStatsRepository.findByUser_Username(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Player stats not found for user: " + username));
 
-        stats.setCurrency(request.getCurrency());
-        stats.setLevel(request.getLevel());
-        stats.setKills(request.getKills());
+        // --- Update logic ---
+        stats.setCurrency(request.getCurrency()); // Update total currency
+        stats.setLevel(request.getLevel());       // Update total level
+        stats.setKills(request.getKills());         // Update total kills
+
+        if (request.getSessionScore() != null && request.getSessionScore() > stats.getHighestScore()) {
+            stats.setHighestScore(request.getSessionScore()); // Update highest score if new session score is better
+            System.out.println("New highest score for " + username + ": " + request.getSessionScore());
+        }
 
         if (request.getCurrentWeaponName() != null) {
             // Optional: Validate if user owns the weapon before setting

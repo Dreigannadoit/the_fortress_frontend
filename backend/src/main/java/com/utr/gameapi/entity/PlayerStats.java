@@ -28,7 +28,10 @@ public class PlayerStats {
     @Column(name = "currency", nullable = false, columnDefinition = "INT DEFAULT 0")
     private int currency = 0; // Renamed from 'currency_amount'
 
-    @Column(name = "current_weapon_name") // Store the *name* or *ID* of the weapon
+    @Column(name = "highest_score", nullable = false, columnDefinition = "INT DEFAULT 0")
+    private int highestScore = 0;
+
+    @Column(name = "current_weapon_name")
     private String currentWeaponName = "pistol"; // Default weapon
 
     @ElementCollection(fetch = FetchType.EAGER) // Store list of active skill identifiers
@@ -44,6 +47,5 @@ public class PlayerStats {
     // Constructor
     public PlayerStats(User user) {
         this.user = user;
-        // Set default values if needed, already done via field initializers & columnDefinition
     }
 }
