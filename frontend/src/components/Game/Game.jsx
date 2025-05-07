@@ -283,9 +283,7 @@ const Game = ({
             />
 
             {showNotOwnedPopup && (
-                <div className="popup-container">
-                    <WeaponNotOwnedPopup weaponName={notOwnedWeaponName} />
-                </div>
+                <WeaponNotOwnedPopup weaponName={notOwnedWeaponName} />
             )}
 
             <div className="game-ui" style={{
@@ -298,10 +296,10 @@ const Game = ({
                 </div>
 
                 {/* Un-comment for skill debugging */}
-                {/* <PassiveSkillCheckboxes
+                <PassiveSkillCheckboxes
                     skills={passiveSkills}
                     toggleSkill={toggleSkill}
-                /> */}
+                />
 
                 <InGameStats
                     currentWeapon={currentWeaponInfo}

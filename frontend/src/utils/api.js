@@ -1,11 +1,8 @@
 import axios from 'axios';
 
-// Use environment variable or default for flexibility
-const API_BASE_URL = 'http://localhost:8080/api';
 
-// Create an Axios instance
 const apiClient = axios.create({
-    baseURL: API_BASE_URL,
+    baseURL: `${import.meta.env.VITE_API_BASE_URL}`,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -34,9 +31,8 @@ apiClient.interceptors.response.use(
             console.error("Unauthorized access - 401 Interceptor");
             localStorage.removeItem('jwtToken'); // Clear bad token
             // Redirect to login or trigger a logout action
-            // Avoid infinite loops if the login page itself triggers this
             if (window.location.pathname !== '/auth') {
-                 window.location.href = '/auth'; // Force reload to reset state
+                 window.location.href = '/auth'; 
             }
         }
         return Promise.reject(error); // Propagate the error

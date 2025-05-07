@@ -134,7 +134,13 @@ const Store = ({ playerData, purchaseItemAndRefresh, setGameActive }) => {
                                 key={item.id}
                                 className={`store-item ${owned ? 'owned' : ''} ${!item.available ? 'unavailable' : ''}`}
                             >
-                                <h3>{item.name}</h3>
+                                <h3>
+                                    {
+                                        item.name === "pistol" ? "slingshot" : 
+                                        item.name === "shotgun" ? "WizardWand" :
+                                        item.name === "machinegun" ? "RockSpell" : item.name
+                                    }
+                                </h3>
                                 <p>{item.description}</p>
                                 <div className="item-footer">
                                     <span>Price: {item.price}</span>

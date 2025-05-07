@@ -34,6 +34,7 @@ const useGameEngine = (
     const [timeElapsed, setTimeElapsed] = useState(0);
     const [enemyScalingFactor, setEnemyScalingFactor] = useState(1); // Start scaling later
     const [currentEnemySpawnCount, setCurrentEnemySpawnCount] = useState(ENEMY_SPAWN_COUNT);
+    const [sessionEnemyKills, setSessionEnemyKills] = useState(0)
 
     // --- Player State (Managed Internally during game) ---
     const [playerHealth, setPlayerHealth] = useState(DEFAULT_PLAYER_HEALTH);
@@ -51,7 +52,7 @@ const useGameEngine = (
     const [itemSpawnTimer, setItemSpawnTimer] = useState(0);
     const [spritesLoaded, setSpritesLoaded] = useState(false);
     const [screenShake, setScreenShake] = useState({ offsetX: 0, offsetY: 0, active: false, endTime: 0, intensity: 0 });
-    const [maxDrones, setMaxDrones] = useState(4);
+    const [maxDrones, setMaxDrones] = useState(0);
     const [isMusicPlaying, setIsMusicPlaying] = useState(false);
     const [musicVolume, setMusicVolume] = useState(0.5);
 
@@ -287,6 +288,7 @@ const useGameEngine = (
 
     // Update currency earned during the game session
     const handleEnemyKilled = useCallback((enemy) => {
+        setSessionEnemyKills(prevKills => prevKills + 1);
         const newScore = score + enemy.score;
         setScore(newScore);
         const scoreBasedCurrencyGain = Math.floor(newScore / 2) - Math.floor(lastConvertedScoreCurrency.current / 2);
@@ -487,15 +489,15 @@ const useGameEngine = (
     const handlePlayerDamage = useCallback((damage, attacker) => {
         const player = playerRef.current;
         if (!player) return;
-        if (player.canTakeDamage()) {
-            // Access skills via ref inside callback
-            PassiveSkills.thorns(damage, attacker, passiveSkillsRef.current.thorns);
-            if (player.takeDamage(damage)) {
-                setGameOver(true); // Trigger game over state
-            }
-            setPlayerHealth(player.getHealth()); // Update health state
+        // Access skills via ref inside callback
+        if (passiveSkillsRef.current.thorns) { // Check the ref for current skill status
+            PassiveSkills.thorns(damage, attacker, true); // Pass true as we've confirmed it's active
         }
-    }, []);
+        if (player.takeDamage(damage)) {
+            setGameOver(true); // Trigger game over state
+        }
+        setPlayerHealth(player.getHealth()); // Update health st
+    }, [setGameOver, setPlayerHealth]);
 
     const handleRestart = useCallback(() => {
         console.log("Restarting game...");
@@ -511,6 +513,7 @@ const useGameEngine = (
         setScore(0); // Reset session score
         setTimeElapsed(0);
         setEnemyScalingFactor(1); // Reset scaling
+        setSessionEnemyKills(0);
         setCurrentEnemySpawnCount(ENEMY_SPAWN_COUNT); // Reset spawn count
         setBaseHealth(INITIAL_BASE_HEALTH); // Reset base health
 
@@ -583,22 +586,22 @@ const useGameEngine = (
         const levelFromScore = Math.floor(score / 100);
         const originalLevel = originalInitialData.current?.level ?? DEFAULT_LEVEL;
         const finalLevel = Math.max(currentLevelInGame, originalLevel) + levelFromScore;
+
         const activeSkillIds = Object.entries(passiveSkills).filter(([, a]) => a).map(([k]) => k);
 
-        
-        const killsBeforeSession = originalInitialData.current?.kills ?? 0;
-        const sessionKills = score; // 'score' represents kills *in this session*
-        const totalKillsAfterSession = killsBeforeSession + sessionKills;
+
+        const killsBeforeThisSession = originalInitialData.current?.kills ?? 0;
+        const totalKillsAfterThisSession = killsBeforeThisSession + sessionEnemyKills;
 
         return {
-            currency: currentCurrencyInGame, // Final currency from game session
-            level: finalLevel, // Calculated final level
-            kills: totalKillsAfterSession, // NEW total kills to store in DB
-            sessionScore: score, // <-- Add the score achieved THIS session
+            currency: currentCurrencyInGame,
+            level: finalLevel,
+            kills: totalKillsAfterThisSession,
+            sessionScore: score,
             currentWeaponName: playerRef.current?.getCurrentWeaponInfo().name || DEFAULT_WEAPON,
             activeSkillIds: activeSkillIds,
         };
-    }, [score, currentCurrencyInGame, currentLevelInGame, passiveSkills]);
+    }, [score, sessionEnemyKills, currentCurrencyInGame, currentLevelInGame, passiveSkills]);
 
     // Input handlers
     const handleMouseMove = useCallback((e) => {
@@ -640,19 +643,19 @@ const useGameEngine = (
     const handleKeyDown = useCallback((e) => {
         if (!playerRef.current) return null;
         const key = e.key.toLowerCase();
-    
+
         // Always allow pause regardless of game state
         if (key === 'escape') {
             setIsPaused(prev => !prev);
             return null;
         }
-    
+
         // Block other keys if game hasn't started
         if (!gameStarted) return null;
-    
+
         // Handle other keys
         if (keys.current.hasOwnProperty(key)) keys.current[key] = true;
-    
+
         switch (key) {
             case '1': return handleWeaponSwitch('pistol');
             case '2': return handleWeaponSwitch('shotgun');
@@ -739,7 +742,7 @@ const useGameEngine = (
 
     useEffect(() => {
         if (passiveSkills.fastReload && playerRef.current) {
-            playerRef.current.setReloadModifier(0.7);
+            playerRef.current.setReloadModifier(0.5);
         } else if (playerRef.current) {
             playerRef.current.setReloadModifier(1.0);
         }
@@ -927,7 +930,7 @@ const useGameEngine = (
                 if (isPaused || !playerRef.current) return true;
 
                 // *** Call Enemy's own update method ***
-                enemy.update(playerRef.current, canvas, lineY);
+                const enemyAttemptedDamage = enemy.update(playerRef.current, canvas, lineY);
 
                 // *** Game Logic interacting with enemy state ***
                 // Start damaging base if stopped at the line
@@ -947,6 +950,10 @@ const useGameEngine = (
                     enemy.damageInterval = null;
                 }
 
+                if (enemyAttemptedDamage) {
+                    handlePlayerDamage(enemy.damage, enemy); // <-- Thorns is applied here. Attacker (enemy) takes damage.
+                    enemy.lastDealtDamageTimestamp = Date.now();
+                }
 
                 // --- Collision Checks ---
                 let killedByBullet = false;
@@ -954,36 +961,43 @@ const useGameEngine = (
                     if (checkCollision(bullet, enemy)) {
                         applyScreenShake(/* Intensity based on bullet.weaponType */);
                         const knockbackAngle = bullet.angle ?? Math.atan2(bullet.y - (enemy.y + enemy.size / 2), bullet.x - (enemy.x + enemy.size / 2));
-                        const killed = enemy.takeDamage(bullet.damage, weaponDefinitions[bullet.weaponType]?.recoilForce || 1, knockbackAngle);
+                        const damageDealtByBullet = bullet.damage;
+                        const killed = enemy.takeDamage(damageDealtByBullet, weaponDefinitions[bullet.weaponType]?.recoilForce || 1, knockbackAngle);
 
-                        if (killed) {
-                            killedByBullet = true;
-                            handleEnemyKilled(enemy);
-                            const healAmount = PassiveSkills.lifeSteal(bullet.damage, passiveSkillsRef.current.lifeSteal);
+                        // Apply life steal for any damage dealt
+                        if (passiveSkillsRef.current.lifeSteal) {
+                            const healAmount = PassiveSkills.lifeSteal(damageDealtByBullet, true); // Pass true as active
                             if (healAmount > 0 && playerRef.current) {
                                 playerRef.current.heal(healAmount);
                                 setPlayerHealth(playerRef.current.getHealth());
                             }
                         }
+
+
+                        if (killed) {
+                            killedByBullet = true;
+                            handleEnemyKilled(enemy);
+                        }
                         return false; // Remove bullet
                     }
+
+                    // if (enemy.health <= 0) {
+                    //     if (enemy.damageInterval) clearInterval(enemy.damageInterval);
+                    //     if (!killedByBullet) {
+                    //         handleEnemyKilled(enemy); // Also call if killed by other means (e.g. thorns if it can kill)
+                    //     }    
+                    //     return false;
+                    // }
                     return true; // Keep bullet
                 });
 
-                if (enemy.checkPlayerCollision(playerRef.current)) {
-                    handlePlayerDamage(enemy.damage, enemy);
-                    const knockbackAngle = Math.atan2(enemy.y - playerRef.current.y, enemy.x - playerRef.current.x);
-                    enemy.applyKnockback(15, knockbackAngle + Math.PI); // Knock away from player
-                }
-
-                // --- Cleanup ---
                 if (enemy.health <= 0) {
                     if (enemy.damageInterval) clearInterval(enemy.damageInterval);
-                    if (!killedByBullet) handleEnemyKilled(enemy); // Score if killed by other means
+                    if (!killedByBullet) handleEnemyKilled(enemy); 
                     // TODO: Play death sound, spawn explosion/particles
-                    return false; // Remove enemy
+                    return false; 
                 }
-                return true; // Keep enemy
+                return true;
             });
         };
 
@@ -1349,7 +1363,7 @@ const useGameEngine = (
     }, [
         canvasRef, initialPlayerData, spritesLoaded, gameDuration, gameStarted,
         // State that controls the loop running
-        win, gameOver, isPaused,
+        win, gameOver, isPaused, baseHealth,
         // Callbacks used inside the loop
         handleMouseMove, handleMouseDown, handleMouseUp, handleKeyDown, handleKeyUp,
         createBulletsCallbackForPlayer, handleWeaponSwitch, handleEnemyKilled,
@@ -1368,11 +1382,13 @@ const useGameEngine = (
         timeElapsed,
         playerHealth,
         currentWeaponInfo,
+
         currentAmmo,
         isReloading,
         reloadTime,
         passiveSkills, // Current active skills map
         maxDrones,
+        sessionEnemyKills,
         currentCurrencyInGame, // Currency managed during the game
         gameStarted,
 

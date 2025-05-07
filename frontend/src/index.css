@@ -10,6 +10,7 @@ body {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  background-color: #000;
 }
 
 html,
@@ -17,6 +18,10 @@ body {
   width: 100%;
   height: 100%;
   overflow-x: hidden;
+}
+
+button {
+  cursor: pointer;
 }
 
 .motion-div {
@@ -49,10 +54,40 @@ canvas {
   image-rendering: pixelated;
 }
 
+.popup-window-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #121212; /* Your app's background color */
+}
+
+.popup-container {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: #000; /* Or your app's background */
+}
+
+.waiting-message {
+  margin-top: 100px;
+  color: white;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 20px;
+  border-radius: 10px;
+  display: inline-block;
+}
+
 .game-container {
   position: relative;
   width: 100%;
   height: 100%;
+  cursor: none;
   /* 
   background: url('./assets/floor.png') repeat center center;
   background-size: 50%; */
@@ -71,6 +106,7 @@ canvas {
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  cursor: pointer;
   color: white;
   font-size: 2rem;
   text-align: center;
@@ -110,6 +146,9 @@ canvas {
 
 
 /* components/Game/Store.css */
+.store-container *{
+  transition: all 0.3s ease;
+}
 .store-container {
   position: fixed;
   top: 0;
@@ -171,9 +210,11 @@ canvas {
 
 .store-categories {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
   margin-bottom: 20px;
+  overflow-x: auto;
+  white-space: nowrap; 
 }
 
 .store-categories button {
@@ -184,6 +225,7 @@ canvas {
   cursor: pointer;
   font-size: 1em;
   transition: all 0.3s;
+  z-index: 99999999999;
 }
 
 .store-categories button.active {
@@ -219,13 +261,16 @@ canvas {
 }
 
 .store-item.owned {
-  border-color: #4CAF50;
-  background-color: rgba(76, 175, 80, 0.1);
+  border-color: #db7f41;
+  background-color: #db7f4141;
 }
 
 .store-item h3 {
   margin-top: 0;
   color: #4CAF50;
+}
+.store-item.owned h3 {
+  color: #6b3900;
 }
 
 .store-item p {
@@ -244,7 +289,7 @@ canvas {
 }
 
 .owned-label {
-  color: #4CAF50;
+  color: #74471e;
   font-weight: bold;
 }
 

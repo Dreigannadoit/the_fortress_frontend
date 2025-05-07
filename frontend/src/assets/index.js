@@ -44,6 +44,7 @@ import turret_shoot from "./sound/sfx/turret.mp3"
 
 import boss_grunts from "./sound/sfx/boss_grunts.mp3"
 import text_sfx from "./sound/sfx/text_sfx.mp3"
+import typewritter from "./sound/sfx/typewritter.mp3"
 
 
 export {
@@ -82,6 +83,7 @@ export {
     menu,
     buttons,
     boss_grunts,
-    text_sfx
+    text_sfx,
+    typewritter
 
 }

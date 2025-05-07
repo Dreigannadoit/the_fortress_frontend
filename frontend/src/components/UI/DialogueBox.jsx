@@ -104,6 +104,8 @@ const DialogueBox = ({ text, onNext, onSkip }) => {
                     <img src={boss} alt="" />
                 </div>
                 <div className="dialogue-chat">
+                    <h1 style={{color:"lightBlue"}}>Vorgash Ghor’zul P. Zogthar-Gnarltooth</h1>
+                    <p style={{color:"#ccc"}}><i>The Blue Herald, Demonlord’s Siege-Master</i></p>
                     <div className="dialogue-text">{displayedText}</div>
                     <div className="dialogue-controls">
                         <button className="dialogue-next" onClick={handleClick}>

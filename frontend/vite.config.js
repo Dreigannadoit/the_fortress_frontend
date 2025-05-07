@@ -5,4 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   assetsInclude: ['**/*.MP3', '**/*.mp3'],
   plugins: [react()],
+  server: {
+    port: 42069,
+  },
 })

@@ -30,7 +30,6 @@ console.log(
 );
 console.log("%cVisit my site: https://dreiabmab.com", "background-color: black; color: lightblue; text-decoration: underline; padding: 5px;");
 
-
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />

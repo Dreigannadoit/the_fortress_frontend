@@ -3,7 +3,7 @@ import { RockSpell, Slingshot, WizardWand } from '../../assets'
 
 const PlayerStats = ({ active, ownedWeapons, playerData, ownedSkills, username }) => {
     return (
-        <div className={`stats_player ${active ? 'active' : ''}`}>
+        <div className={`stats_player ${active ? 'active' : ''}`} id='stats_player'>
             <div className="stats_player__title">
                 <h1>Player Details</h1>
             </div>
@@ -17,7 +17,9 @@ const PlayerStats = ({ active, ownedWeapons, playerData, ownedSkills, username }
                 <div className="stats_player__content__item">
                     Highest Score: {playerData?.highestScore || 0}
                 </div>
-                <div className="stats_player__content__item">Kills: {playerData?.kills || 0}</div>
+                <div className="stats_player__content__item">
+                    Overall Kills: {playerData?.kills || 0}
+                </div>
                 <div className="stats_player__content__item">
                     Unlocked Weapons:
                     {ownedWeapons.length > 0 ? (

@@ -13,36 +13,57 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 public class GameApiApplication {
 
 	public static void main(String[] args) {
+		final String RED_ON_BLACK = "\u001B[31;40m";
+		final String BLUE_ON_BLACK = "\u001B[34;40m";
+		final String YELLOW_ON_BLACK = "\u001B[33;40m";
+		final String RESET = "\u001B[0m";
+
 		String[] art = {
-				"====================================================================== ",
-				"DDDDDDDDDDD       RRRRRRRRRRRRR     EEEEEEEEEEEEEEE   IIIIIIIIIIIIIII  ",
-				"DDD      DDDDD    RRR         RRR   EEE                     III        ",
-				"DDD        DDDD   RRR      RRRRRR   EEE                     III        ",
-				"DDD         DDD   RRRRRRRRRRRRR     EEEEEEEEEEEEEEE         III        ",
-				"DDD        DDDD   RRR       RRRRR   EEE                     III        ",
-				"DDD      DDDDD    RRR         RRR   EEE                     III        ",
-				"DDDDDDDDDDD       RRR         RRR   EEEEEEEEEEEEEEE   IIIIIIIIIIIIIIII ",
-				"====================================================================== ",
-				"https://dreiabmab.com"
+				"===============================================================================",
+				"                                                                               ",
+				"  ⬜⬜⬜⬜⬜⬜      ⬜⬜⬜⬜⬜⬜        ⬜⬜⬜⬜⬜⬜     ⬜⬜⬜⬜⬜⬜   ",
+				"  ⬜⬜⬜⬜⬜⬜⬜    ⬜⬜⬜⬜⬜⬜⬜     ⬜⬜⬜⬜⬜⬜     ⬜⬜⬜⬜⬜⬜    ",
+				"  ⬜⬜     ⬜⬜⬜    ⬜⬜       ⬜⬜    ⬜⬜                   ⬜⬜        ",
+				"  ⬜⬜       ⬜⬜    ⬜⬜⬜⬜⬜⬜⬜     ⬜⬜⬜⬜⬜⬜         ⬜⬜         ",
+				"  ⬜⬜       ⬜⬜    ⬜⬜⬜⬜⬜⬜       ⬜⬜⬜⬜⬜⬜         ⬜⬜         ",
+				"  ⬜⬜     ⬜⬜⬜    ⬜⬜     ⬜⬜⬜    ⬜⬜                  ⬜⬜          ",
+				"  ⬜⬜⬜⬜⬜⬜⬜    ⬜⬜        ⬜⬜    ⬜⬜⬜⬜⬜⬜    ⬜⬜⬜⬜⬜⬜     ",
+				"  ⬜⬜⬜⬜⬜⬜      ⬜⬜        ⬜⬜    ⬜⬜⬜⬜⬜⬜    ⬜⬜⬜⬜⬜⬜     ",
+				"                                                                                ",
+				"================================================================================",
+				"   |========================================================================|   ",
+				"   |                                                                        |   ",
+				"   |                 WELCOME TO THE 'UNTIL THEY RETURN' API                 |   ",
+				"   |                            DEV, ROBERT BAMBA                           |   ",
+				"   |                          https://dreiabmab.com                         |   ",
+				"   |                                                                        |   ",
+				"   |=============================================++=========================|   ",
+				"                                                                                ",
 		};
 		String[] bye = {
-				"       _    (^)",
-				"      (_\\   |_|",
-				"       \\_\\  |_|",
-				"       _\\_\\,/_|",
-				"      (`\\(_|`\\|",
-				"     (`\\,)  \\ \\",
-				"      \\,)   | | ",
-				"        \\__(__|",
-				"====================================================================== ",
-				"https://dreiabmab.com"
+				"======================================================",
+				"                      _    (^)                        ",
+				"                     (_\\   |_|                        ",
+				"                      \\_\\  |_|                        ",
+				"                      _\\_\\,/_|                        ",
+				"                     (`\\(_|`\\|                        ",
+				"                   (`\\,)  \\ \\                         ",
+				"                     \\,)   | |                        ",
+				"                       \\__(__|                        ",
+				"        PEACE TO THOSE WHO TRY TO STEAL MY CODE       ",
+				"======================================================",
+				"                                                      ",
+				"  API SUCCESSFULLY RUNNING AND CONNECTED TO DATABASE  ",
+				"                                                      ",
+				"======================================================",
+				"                https://dreiabmab.com                 "
 		};
 
-		for (String line : art) System.out.println(line);
+		for (String line : art)  System.out.println(BLUE_ON_BLACK + line + RESET);
 
 		SpringApplication.run(GameApiApplication.class, args);
 
-		for (String line : bye) System.out.println(line);
+		for (String line : bye) System.out.println(YELLOW_ON_BLACK + line + RESET);
 	}
 
 }

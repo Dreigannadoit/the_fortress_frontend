@@ -17,13 +17,13 @@ export const PassiveSkills = {
     // Life Steal: Heal percentage of damage dealt
     lifeSteal: (damageDealt, isActive) => {
         if (!isActive) return 0;
-        return damageDealt * 0.05; // 5% of damage as healing
+        return damageDealt * 0.005; // 25% of damage as healing
     },
 
     // Thorns: Reflect damage to attacker
     thorns: (damageReceived, attacker, isActive) => {
         if (!isActive || !attacker) return;
-        const reflectedDamage = damageReceived * 0.2;
+        const reflectedDamage = damageReceived * 10;
         attacker.takeDamage(reflectedDamage);
     },
 

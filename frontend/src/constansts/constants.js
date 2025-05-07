@@ -32,7 +32,7 @@ export const TURRET_CONFIG = {
     bulletSpeed: 40, 
     damage: 15,     
     fireRate: 1000,    
-    range: getScaledValue(1000),         // Targeting range
+    range: getScaledValue(0),         // Targeting range
     color: '#555',      
     barrelColor: '#666', 
     highlightColor: '#888',

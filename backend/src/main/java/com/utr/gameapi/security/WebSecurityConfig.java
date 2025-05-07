@@ -5,6 +5,7 @@ import com.utr.gameapi.security.jwt.AuthTokenFilter;
 import com.utr.gameapi.security.services.UserDetailsServiceImpl;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -114,15 +115,33 @@ public class WebSecurityConfig {
         return http.build();
     }
 
+    @Value("${frontend_1.url}")
+    private String frontendUrl1;
+    @Value("${frontend_2.url}")
+    private String frontendUrl2;
+    @Value("${frontend_3.url}")
+    private String frontendUrl3;
+    @Value("${frontend_4.url}")
+    private String frontendUrl4;
+    @Value("${frontend_5.url}")
+    private String frontendUrl5;
+    @Value("${frontend_6.url}")
+    private String frontendUrl6;
+    @Value("${frontend_7.url}")
+    private String frontendUrl7;
+
     // --- CORS Configuration Bean ---
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:5173",
-                "http://127.0.0.1:5173",
-                "http://localhost:3000",
-                "http://127.0.0.1:3000"
+                frontendUrl1,
+                frontendUrl2,
+                frontendUrl3,
+                frontendUrl4,
+                frontendUrl5,
+                frontendUrl6,
+                frontendUrl7
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList(

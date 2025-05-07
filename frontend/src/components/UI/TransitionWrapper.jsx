@@ -28,8 +28,13 @@ const TransitionWrapper = ({ children }) => {
         "If you kill enemies, you get a higher score",
         "Does anyone actully read these?",
         "The longer you survive, the more intense the enemies become",
-        ""
-
+        "The more items you buy, the more powerful you become",
+        '"When you return, we will give you the largest celebration the WORLD has ever seen. So stay alive."',
+        "You can view your current stats by clicking your name in the start menu",
+        "The enemy will start to damage the wall after half a second after contact with the wall",
+        "You CANNOT Jump in this game",
+        "The game will end if you die or the base dies"
+        
     ], []);
 
     const randomTip = useMemo(() => tips[Math.floor(Math.random() * tips.length)], [tips]);
